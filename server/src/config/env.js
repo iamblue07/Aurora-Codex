@@ -109,6 +109,23 @@ const config = Object.freeze({
         origins: Object.freeze([...corsOrigins]),
     }),
 
+    /**
+     * Where uploads are stored: Cloudflare R2 when R2_BUCKET is set (needed on hosts without a
+     * persistent disk, e.g. Render's free plan), otherwise the local UPLOADS_DIR folder.
+     * Public images are served from R2_PUBLIC_URL; chat attachments stay private (served by the API).
+     */
+    storage: Object.freeze({
+        driver: optional('R2_BUCKET', null) ? 'r2' : 'local',
+        r2: Object.freeze({
+            accountId: optional('R2_ACCOUNT_ID', null),
+            accessKeyId: optional('R2_ACCESS_KEY_ID', null),
+            secretAccessKey: optional('R2_SECRET_ACCESS_KEY', null),
+            bucket: optional('R2_BUCKET', null),
+            publicUrl: optional('R2_PUBLIC_URL', '').replace(/\/+$/, ''),
+            folder: optional('R2_FOLDER', 'aurora-codex').replace(/^\/+|\/+$/g, ''),
+        }),
+    }),
+
     googleBooks: Object.freeze({
         /** Optional: without a key Google applies a lower, shared quota. Never sent to clients. */
         apiKey: optional('GOOGLE_BOOKS_API_KEY', null),

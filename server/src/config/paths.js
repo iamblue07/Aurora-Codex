@@ -2,6 +2,7 @@ import 'dotenv/config';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import config from './env.js';
 
 /** Absolute path of the `server/` folder, independent of the current working directory. */
 export const SERVER_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -41,6 +42,12 @@ export const resolveStoredPath = (storedPath) => {
     return absolute.startsWith(UPLOADS_ROOT + path.sep) ? absolute : null;
 };
 
-/** Public URL of a stored image, or `null` when there is none. */
-export const publicImageUrl = (storedPath) =>
-    (storedPath?.startsWith(`${UPLOAD_FOLDERS.images}/`) ? `/uploads/${storedPath}` : null);
+/**
+ * Public URL of a stored image, or `null` when there is none: an absolute R2 URL with R2 storage,
+ * otherwise a path served by this API (`/uploads/images/...`).
+ */
+export const publicImageUrl = (storedPath) => {
+    if (!storedPath?.startsWith(`${UPLOAD_FOLDERS.images}/`)) return null;
+    const { driver, r2 } = config.storage;
+    return driver === 'r2' ? `${r2.publicUrl}/${r2.folder}/${storedPath}` : `/uploads/${storedPath}`;
+};

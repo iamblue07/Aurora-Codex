@@ -2,7 +2,7 @@ const LEVELS = { debug: 10, info: 20, warn: 30, error: 40 };
 const threshold = LEVELS[process.env.LOG_LEVEL?.toLowerCase()] ?? LEVELS.info;
 
 /** Environment variables whose values must never appear in a log line. */
-const SECRET_VARIABLES = ['DEEPINFRA_API_KEY', 'GOOGLE_BOOKS_API_KEY', 'SECRET_KEY', 'DB_PASS'];
+const SECRET_VARIABLES = ['DEEPINFRA_API_KEY', 'GOOGLE_BOOKS_API_KEY', 'R2_SECRET_ACCESS_KEY', 'SECRET_KEY', 'DB_PASS'];
 const MIN_SECRET_LENGTH = 6; // don't redact trivially short values (e.g. an empty dev password)
 const BEARER_TOKEN = /Bearer\s+[\w.~+/-]+=*/gi;
 

@@ -1,7 +1,8 @@
-# Render Blueprint for the API (Dashboard → New → Blueprint → pick this repository).
-# Values marked `sync: false` are asked for when the Blueprint is created; they are never
-# stored in the repository. The client is deployed separately (e.g. on Vercel).
+# Render Blueprint for the API (Dashboard → New → Blueprint → this repository, branch main).
+# Values marked `sync: false` are asked for once, when the Blueprint is created; they are never
+# stored in the repository. The client is on Vercel, uploads on Cloudflare R2, MySQL elsewhere.
 services:
+  # --- API: Node.js + Express -------------------------------------------------------------------
   - type: web
     name: aurora-codex-api
     runtime: node
@@ -21,7 +22,7 @@ services:
       - key: PUPPETEER_SKIP_DOWNLOAD
         value: "true"
 
-      # --- Database (a hosted MySQL 8; Render itself only offers PostgreSQL) ---
+      # Database: your hosted MySQL 8 provider's connection details.
       - key: DB_HOST
         sync: false
       - key: DB_PORT
@@ -35,15 +36,30 @@ services:
       - key: DB_SSL
         value: "true"
 
-      # --- Auth: a fresh random secret (never reuse the one from the old .env) ---
+      # A fresh random secret that signs login tokens (never reuse an old one).
       - key: SECRET_KEY
         generateValue: true
 
-      # --- Client origin allowed by CORS, e.g. https://your-app.vercel.app ---
+      # The client's address on Vercel, allowed by CORS, e.g. https://your-app.vercel.app
       - key: FRONTEND_URL
         sync: false
 
-      # --- Optional services (leave empty to disable) ---
+      # Uploads (avatars, listing photos, chat files) on Cloudflare R2: the free plan has no disk.
+      - key: R2_ACCOUNT_ID
+        sync: false
+      - key: R2_ACCESS_KEY_ID
+        sync: false
+      - key: R2_SECRET_ACCESS_KEY
+        sync: false
+      - key: R2_BUCKET
+        sync: false
+      # Public bucket URL (r2.dev subdomain or custom domain), e.g. https://pub-xxxx.r2.dev
+      - key: R2_PUBLIC_URL
+        sync: false
+      - key: R2_FOLDER
+        value: aurora-codex
+
+      # Optional services: leave empty to disable.
       - key: DEEPINFRA_API_KEY
         sync: false
       - key: GOOGLE_BOOKS_API_KEY

@@ -37,10 +37,13 @@ export const createApp = () => {
     app.get('/health', (_req, res) => res.json({ status: 'ok' }));
 
     // Only public images are served statically; chat media goes through an authorised endpoint.
-    app.use(
-        `/uploads/${UPLOAD_FOLDERS.images}`,
-        express.static(path.join(UPLOADS_ROOT, UPLOAD_FOLDERS.images), { maxAge: '7d', index: false }),
-    );
+    // (With R2 storage, images are served by Cloudflare instead.)
+    if (config.storage.driver === 'local') {
+        app.use(
+            `/uploads/${UPLOAD_FOLDERS.images}`,
+            express.static(path.join(UPLOADS_ROOT, UPLOAD_FOLDERS.images), { maxAge: '7d', index: false }),
+        );
+    }
 
     app.use('/api', apiRateLimiter, apiRoutes);
 

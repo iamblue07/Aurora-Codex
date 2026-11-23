@@ -2,8 +2,9 @@ import crypto from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import multer from 'multer';
-import { UPLOADS_ROOT, UPLOAD_FOLDERS } from '../config/paths.js';
+import { UPLOADS_ROOT, UPLOAD_FOLDERS, toStoredPath } from '../config/paths.js';
 import HttpError from '../utils/http-error.js';
+import { persistLocalFile } from '../utils/files.js';
 import { optimizeImageFile } from '../utils/images.js';
 import logger from '../utils/logger.js';
 
@@ -42,6 +43,12 @@ const createUploader = ({ folder, allowedTypes, maxSizeMb, errorMessage }) => mu
     fileFilter: fileFilterFor(allowedTypes, errorMessage),
 });
 
+/** Moves the verified upload to its final storage (R2 or the local uploads folder). */
+const persistUpload = (file) => persistLocalFile(
+    file.path,
+    toStoredPath(path.basename(file.destination), file.filename),
+);
+
 /** True when the file starts with the PDF signature (the declared type alone can be faked). */
 const hasPdfSignature = async (filePath) => {
     const handle = await fs.open(filePath, 'r');
@@ -60,7 +67,10 @@ const hasPdfSignature = async (filePath) => {
 const verifyUploadedFile = async (req, _res, next) => {
     if (req.file && !req.file.mimetype.startsWith('image/')) {
         try {
-            if (await hasPdfSignature(req.file.path)) return next();
+            if (await hasPdfSignature(req.file.path)) {
+                await persistUpload(req.file);
+                return next();
+            }
             await fs.rm(req.file.path, { force: true });
             return next(HttpError.badRequest('The file is not a valid PDF'));
         } catch (error) {
@@ -71,11 +81,16 @@ const verifyUploadedFile = async (req, _res, next) => {
     try {
         const optimized = await optimizeImageFile(req.file.path);
         Object.assign(req.file, optimized, { mimetype: 'image/webp' });
-        return next();
     } catch (error) {
         logger.warn(`Rejected an unreadable image upload: ${error.message}`);
         await fs.rm(req.file.path, { force: true }); // don't keep rejected files on disk
         return next(HttpError.badRequest('The file is not a valid image'));
+    }
+    try {
+        await persistUpload(req.file);
+        return next();
+    } catch (error) {
+        return next(error);
     }
 };
 

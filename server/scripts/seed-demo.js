@@ -21,6 +21,7 @@ import sequelize, { closeDatabase, connectDatabase } from '../src/database/conne
 import {
     BOOK_REFS, DEMO_ADMIN, DEMO_CHATS, DEMO_FORUMS, DEMO_LISTINGS, DEMO_REPORTS, DEMO_USERS,
 } from './seed/demo-content.js';
+import { storeBuffer } from '../src/utils/files.js';
 import { renderListingImage } from './seed/listing-image.js';
 
 const args = process.argv.slice(2);
@@ -150,7 +151,7 @@ const main = async () => {
         }
         const image = await renderListingImage({ title: listing.title.split(' – ')[0], author: book.author });
         const filename = `demo-${String(index + 1).padStart(2, '0')}-${slug(listing.title)}.webp`;
-        fs.writeFileSync(path.join(UPLOADS_ROOT, UPLOAD_FOLDERS.images, filename), image);
+        await storeBuffer(toStoredPath(UPLOAD_FOLDERS.images, filename), image);
 
         const price = Math.max(5, Math.round(book.lowestPrice * listing.priceFactor));
         const sold = listing.soldAfterDays !== undefined && listing.daysAgo - listing.soldAfterDays >= 0;
@@ -279,7 +280,7 @@ const main = async () => {
         reports: reports.length,
     };
     console.log('Seeded:', summary);
-    console.log(`Listing photos: ${path.join(UPLOADS_ROOT, UPLOAD_FOLDERS.images)}`);
+    console.log(`Listing photos stored in: ${config.storage.driver === 'r2' ? `R2 (${config.storage.r2.folder}/images)` : path.join(UPLOADS_ROOT, UPLOAD_FOLDERS.images)}`);
     console.log(`Credentials written to ${path.relative(SERVER_ROOT, credentialsFile)}`);
 };
 

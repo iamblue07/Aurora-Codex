@@ -1,5 +1,5 @@
 # Aurora Codex — a web app for readers, with AI recommendations
-
+https://aurora-codex.vercel.app/
 Aurora Codex brings together everything a Romanian reader needs in one place:
 
 - a catalogue of **56,000+ books** with prices compared across Romanian bookstores;

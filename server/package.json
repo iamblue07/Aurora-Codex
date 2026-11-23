@@ -35,11 +35,11 @@
     "multer": "^2.5.0",
     "mysql2": "^3.24.6",
     "sequelize": "^6.37.8",
-    "sharp": "^0.34.5",
+    "sharp": "^0.35.5",
     "umzug": "^3.8.3"
   },
   "optionalDependencies": {
-    "puppeteer": "^24.43.1"
+    "puppeteer": "^25.18.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",

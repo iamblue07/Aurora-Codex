@@ -113,7 +113,7 @@ const createRunLogger = (onError) => {
 
 const openPage = async (browser) => {
     const page = await browser.newPage();
-    await page.setUserAgent(SCRAPER_SETTINGS.userAgent);
+    await page.setUserAgent({ userAgent: SCRAPER_SETTINGS.userAgent });
     return page;
 };
 

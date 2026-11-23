@@ -20,7 +20,8 @@
     "user": "node scripts/manage-user.js",
     "db:create-catalogue": "node scripts/create-catalogue-db.js",
     "db:seed-demo": "node scripts/seed-demo.js",
-    "db:export": "node scripts/export-db.js"
+    "db:export": "node scripts/export-db.js",
+    "storage:upload-local": "node scripts/upload-local-files.js"
   },
   "license": "ISC",
   "dependencies": {

@@ -1,0 +1,79 @@
+/* Shared styles for the settings-style cards on the profile page. */
+.card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+}
+
+.cardHeader {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-4);
+}
+
+.cardHeader > div {
+    flex: 1;
+}
+
+.cardIcon {
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: var(--radius-md);
+    background: var(--color-primary-soft);
+    color: var(--color-primary);
+}
+
+.cardIcon svg {
+    width: 1.2rem;
+    height: 1.2rem;
+}
+
+.cardTitle {
+    font-size: var(--text-lg);
+}
+
+.cardHint {
+    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+}
+
+.counter {
+    padding: 0.2rem 0.6rem;
+    border-radius: var(--radius-full);
+    background: var(--color-surface-sunken);
+    color: var(--color-text-muted);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-black);
+}
+
+.chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+}
+
+.cardFooter {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+}
+
+.formRow {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-4);
+}
+
+@media (max-width: 640px) {
+    .formRow {
+        grid-template-columns: 1fr;
+    }
+}

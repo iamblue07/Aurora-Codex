@@ -1,0 +1,20 @@
+.tooltip {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    padding: var(--space-2) var(--space-3);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background: var(--color-surface-raised);
+    box-shadow: var(--shadow-md);
+    font-size: var(--text-xs);
+}
+
+.tooltipLabel {
+    color: var(--color-text-muted);
+}
+
+.tooltipValue {
+    color: var(--color-text);
+    font-size: var(--text-sm);
+}

@@ -1,0 +1,139 @@
+.layout {
+    display: grid;
+    grid-template-columns: 20rem minmax(0, 1fr);
+    height: min(72dvh, 46rem);
+    overflow: hidden;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-xl);
+    background: var(--color-surface);
+    box-shadow: var(--shadow-md);
+}
+
+.sidebar {
+    min-height: 0;
+    overflow-y: auto;
+    border-right: 1px solid var(--color-border);
+}
+
+.list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    margin: 0;
+    padding: var(--space-2);
+}
+
+.item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-md);
+    transition: background-color var(--duration-fast) var(--ease-out);
+}
+
+.item:hover {
+    background: var(--color-surface-sunken);
+}
+
+.active,
+.active:hover {
+    background: var(--color-primary-soft);
+}
+
+.thumb {
+    flex-shrink: 0;
+    width: 3rem;
+    height: 3rem;
+    border-radius: var(--radius-sm);
+}
+
+.itemText {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.itemTitle {
+    overflow: hidden;
+    font-weight: var(--weight-bold);
+    font-size: var(--text-sm);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.itemMeta {
+    overflow: hidden;
+    color: var(--color-text-muted);
+    font-size: var(--text-xs);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.itemSide {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: var(--space-1);
+}
+
+.itemTime {
+    color: var(--color-text-subtle);
+    font-size: 0.68rem;
+    white-space: nowrap;
+}
+
+.closedDot {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    background: var(--color-text-subtle);
+}
+
+.main {
+    min-width: 0;
+    min-height: 0;
+}
+
+.placeholder {
+    display: grid;
+    place-content: center;
+    justify-items: center;
+    gap: var(--space-3);
+    height: 100%;
+    color: var(--color-text-subtle);
+}
+
+.placeholder svg {
+    width: 2.5rem;
+    height: 2.5rem;
+}
+
+@media (max-width: 760px) {
+    /* One pane at a time: the list sizes to its content, an open chat fills the screen. */
+    .layout {
+        grid-template-columns: minmax(0, 1fr);
+        height: auto;
+    }
+
+    .layout.hasChat {
+        height: min(78dvh, 46rem);
+    }
+
+    .sidebar {
+        border-right: 0;
+    }
+
+    .main {
+        display: none;
+    }
+
+    .hasChat .sidebar {
+        display: none;
+    }
+
+    .hasChat .main {
+        display: block;
+    }
+}

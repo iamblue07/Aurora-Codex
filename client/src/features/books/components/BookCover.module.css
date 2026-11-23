@@ -1,0 +1,75 @@
+.cover {
+    position: relative;
+    aspect-ratio: 2 / 3;
+    width: 100%;
+    overflow: hidden;
+    border-radius: var(--radius-sm) var(--radius-md) var(--radius-md) var(--radius-sm);
+    background: var(--color-skeleton);
+    box-shadow: var(--shadow-md);
+}
+
+/* Book spine highlight. */
+.cover::after {
+    content: '';
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 7%;
+    background: linear-gradient(90deg, rgba(0, 0, 0, 0.18), rgba(255, 255, 255, 0.08) 60%, transparent);
+    pointer-events: none;
+}
+
+.cover img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.fallback {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: var(--space-2);
+    height: 100%;
+    padding: 12% 12% 12% 16%;
+    background: linear-gradient(155deg, var(--cover-from), var(--cover-to));
+    color: #fff;
+}
+
+.fallbackIcon {
+    width: 1.5rem;
+    height: 1.5rem;
+    opacity: 0.8;
+}
+
+.fallbackTitle {
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    font-family: var(--font-display);
+    font-weight: var(--weight-bold);
+    font-size: 1.05rem;
+    line-height: 1.15;
+}
+
+.fallbackAuthor {
+    font-size: var(--text-xs);
+    opacity: 0.85;
+}
+
+.sm .fallbackTitle {
+    font-size: 0.8rem;
+}
+
+.sm .fallbackIcon {
+    width: 1rem;
+    height: 1rem;
+}
+
+.lg .fallbackTitle {
+    font-size: 1.6rem;
+}
+
+.lg .fallbackAuthor {
+    font-size: var(--text-sm);
+}

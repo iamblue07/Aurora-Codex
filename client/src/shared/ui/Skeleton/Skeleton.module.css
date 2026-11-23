@@ -1,0 +1,34 @@
+.skeleton {
+    position: relative;
+    display: block;
+    overflow: hidden;
+    width: 100%;
+    border-radius: var(--radius-sm);
+    background: var(--color-skeleton);
+}
+
+.skeleton::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(90deg, transparent, var(--color-skeleton-shine), transparent);
+    animation: shimmer 1.4s var(--ease-in-out) infinite;
+}
+
+.circle {
+    border-radius: 50%;
+}
+
+.text {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    width: 100%;
+}
+
+@keyframes shimmer {
+    to {
+        transform: translateX(100%);
+    }
+}

@@ -1,0 +1,114 @@
+.row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+    max-width: 78%;
+}
+
+.own {
+    align-self: flex-end;
+    flex-direction: row-reverse;
+}
+
+.other {
+    align-self: flex-start;
+}
+
+.bubble {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    padding: var(--space-2) var(--space-4);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-xs);
+    animation: appear var(--duration-base) var(--ease-out);
+}
+
+.own .bubble {
+    border-bottom-right-radius: var(--radius-xs);
+    background: var(--color-primary);
+    color: var(--color-on-primary);
+}
+
+.other .bubble {
+    border-bottom-left-radius: var(--radius-xs);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+}
+
+.media {
+    padding: var(--space-1);
+}
+
+.text {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.time {
+    align-self: flex-end;
+    font-size: 0.68rem;
+    opacity: 0.7;
+}
+
+.media .time {
+    padding: 0 var(--space-2) var(--space-1);
+}
+
+.image {
+    max-width: min(18rem, 100%);
+    max-height: 18rem;
+    border-radius: var(--radius-md);
+    object-fit: cover;
+}
+
+.pdf {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-4);
+    font-weight: var(--weight-bold);
+    text-decoration: underline;
+}
+
+.pdf svg {
+    width: 1.25rem;
+    height: 1.25rem;
+}
+
+.mediaError {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-3);
+    font-size: var(--text-sm);
+    opacity: 0.8;
+}
+
+.mediaError svg {
+    width: 1rem;
+    height: 1rem;
+}
+
+.report {
+    opacity: 0;
+    transition: opacity var(--duration-fast) var(--ease-out);
+}
+
+.row:hover .report,
+.report:focus-visible {
+    opacity: 1;
+}
+
+@keyframes appear {
+    from {
+        opacity: 0;
+        transform: translateY(4px);
+    }
+}
+
+@media (hover: none) {
+    .report {
+        opacity: 0.6;
+    }
+}

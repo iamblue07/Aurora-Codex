@@ -1,0 +1,143 @@
+.page {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-6);
+    max-width: var(--container-narrow);
+    margin: 0 auto;
+}
+
+.back {
+    align-self: flex-start;
+}
+
+.header {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+
+.headerTop {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+}
+
+.count {
+    color: var(--color-text-subtle);
+    font-size: var(--text-sm);
+}
+
+.title {
+    font-size: var(--text-3xl);
+}
+
+.subtitle {
+    color: var(--color-text-muted);
+}
+
+.link {
+    color: var(--color-primary);
+    font-weight: var(--weight-bold);
+}
+
+.link:hover {
+    text-decoration: underline;
+}
+
+.notice {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    color: var(--color-text-muted);
+}
+
+.notice svg {
+    width: 1.1rem;
+    height: 1.1rem;
+}
+
+.composer {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+}
+
+.composerFooter {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.counter {
+    color: var(--color-text-subtle);
+    font-size: var(--text-xs);
+}
+
+.messages {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+}
+
+.message {
+    display: flex;
+    gap: var(--space-4);
+    padding: var(--space-5);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    background: var(--color-surface);
+}
+
+.messageBody {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: var(--space-2);
+    min-width: 0;
+}
+
+.messageHeader {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+}
+
+.messageAuthor {
+    font-weight: var(--weight-black);
+}
+
+a.messageAuthor:hover {
+    color: var(--color-primary);
+}
+
+.messageTime {
+    color: var(--color-text-subtle);
+    font-size: var(--text-xs);
+}
+
+.report {
+    margin-left: auto;
+    opacity: 0;
+    transition: opacity var(--duration-fast) var(--ease-out);
+}
+
+.message:hover .report,
+.report:focus-visible {
+    opacity: 1;
+}
+
+.messageText {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.removed {
+    color: var(--color-text-subtle);
+    font-style: italic;
+}
+
+@media (hover: none) {
+    .report {
+        opacity: 0.6;
+    }
+}

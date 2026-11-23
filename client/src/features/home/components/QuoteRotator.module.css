@@ -1,0 +1,52 @@
+.wrapper {
+    position: relative;
+    display: grid;
+    place-items: center;
+    min-height: 11rem;
+    padding: var(--space-10) var(--space-8);
+    overflow: hidden;
+    border-radius: var(--radius-xl);
+    background: var(--color-neutral-solid);
+    color: var(--color-on-neutral-solid);
+    text-align: center;
+}
+
+.mark {
+    position: absolute;
+    top: var(--space-4);
+    left: var(--space-6);
+    width: 4rem;
+    height: 4rem;
+    color: var(--color-primary);
+    opacity: 0.9;
+}
+
+.quote {
+    max-width: 52rem;
+    transition: opacity 400ms var(--ease-out), transform 400ms var(--ease-out);
+}
+
+.fading {
+    opacity: 0;
+    transform: translateY(6px);
+}
+
+.text {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: var(--text-xl);
+    font-weight: var(--weight-medium);
+    line-height: var(--leading-snug);
+}
+
+.author {
+    margin-top: var(--space-3);
+    color: var(--color-primary);
+    font-weight: var(--weight-black);
+    font-size: var(--text-sm);
+    letter-spacing: 0.04em;
+}
+
+:root[data-theme='dark'] .author {
+    color: var(--red-600);
+}

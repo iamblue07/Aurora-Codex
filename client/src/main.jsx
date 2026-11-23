@@ -1,21 +1,19 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { HashRouter } from 'react-router-dom';
-import { GlobalProvider } from './context/GlobalState';
-import { BookProvider } from './context/CautaState.jsx';
-import { BazarProvider } from './context/BazarState.jsx';
-import App from './App.jsx';
+import { RouterProvider } from 'react-router/dom';
+import AppProviders from '@/app/providers/AppProviders';
+import { prefetchLikelyPages, router } from '@/app/router';
+import { startBackendKeepAlive } from '@/shared/api/keep-alive';
+import '@/shared/styles/global.css';
 
 createRoot(document.getElementById('root')).render(
-  <StrictMode>
-    <HashRouter>
-      <GlobalProvider>
-        <BookProvider>
-          <BazarProvider>
-            <App />
-          </BazarProvider>
-        </BookProvider>
-      </GlobalProvider>
-    </HashRouter>
-  </StrictMode>,
+    <StrictMode>
+        <AppProviders>
+            <RouterProvider router={router} />
+        </AppProviders>
+    </StrictMode>,
 );
+
+prefetchLikelyPages();
+// Keeps a free-tier backend from falling asleep while someone has the app open.
+startBackendKeepAlive();

@@ -1,0 +1,121 @@
+.dialog {
+    /* The global reset zeroes margins; native dialogs centre themselves with margin: auto. */
+    margin: auto;
+    width: min(100% - 2rem, var(--modal-width, 32rem));
+    max-height: min(90dvh, 48rem);
+    padding: 0;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-xl);
+    background: var(--color-surface-raised);
+    color: var(--color-text);
+    box-shadow: var(--shadow-lg);
+}
+
+.dialog[open] {
+    animation: pop-in var(--duration-slow) var(--ease-out);
+}
+
+.dialog::backdrop {
+    background: var(--color-overlay);
+    backdrop-filter: blur(3px);
+    animation: fade-in var(--duration-base) var(--ease-out);
+}
+
+.sm {
+    --modal-width: 26rem;
+}
+
+.md {
+    --modal-width: 32rem;
+}
+
+.lg {
+    --modal-width: 48rem;
+}
+
+.xl {
+    --modal-width: 64rem;
+}
+
+.panel {
+    display: flex;
+    flex-direction: column;
+    max-height: inherit;
+}
+
+.header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-4);
+    padding: var(--space-6) var(--space-6) var(--space-2);
+}
+
+.title {
+    font-size: var(--text-xl);
+}
+
+.description {
+    margin-top: var(--space-2);
+    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+}
+
+.body {
+    padding: var(--space-4) var(--space-6) var(--space-6);
+    overflow-y: auto;
+}
+
+.body:empty {
+    display: none;
+}
+
+.footer {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: var(--space-3);
+    padding: var(--space-4) var(--space-6);
+    border-top: 1px solid var(--color-border);
+    background: var(--color-bg-subtle);
+    border-radius: 0 0 var(--radius-xl) var(--radius-xl);
+}
+
+/* Phones: slide up from the bottom edge, where the thumb already is. */
+@media (max-width: 40rem) {
+    .dialog {
+        width: 100%;
+        max-width: 100%;
+        margin-bottom: 0;
+        border-bottom: 0;
+        border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    }
+
+    .dialog[open] {
+        animation-name: slide-up;
+    }
+
+    .footer {
+        border-radius: 0;
+        padding-bottom: max(var(--space-4), env(safe-area-inset-bottom));
+    }
+}
+
+@keyframes slide-up {
+    from {
+        transform: translateY(100%);
+    }
+}
+
+@keyframes pop-in {
+    from {
+        opacity: 0;
+        transform: translateY(12px) scale(0.98);
+    }
+}
+
+@keyframes fade-in {
+    from {
+        opacity: 0;
+    }
+}

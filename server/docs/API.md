@@ -1,0 +1,182 @@
+# REST API
+
+All endpoints live under `/api` (plus `GET /health` and the static `/uploads/images/*`).
+JSON fields are camelCase English and error messages are English (they are meant for developers;
+the client shows its own Romanian texts). Missing optional data is `null` (e.g. a book's `author`).
+
+## Conventions
+
+| Topic | Rule |
+|---|---|
+| Auth | `Authorization: Bearer <jwt>` (from `/api/auth/login` or `/register`). 🔒 = required, 🛡️ = administrator. |
+| Rate limits | 429 `{ error }` with `RateLimit` headers when exceeded. Per IP: 1500 requests / 15 min on `/api`, 20 login/register attempts / 15 min. Per user: 60 posts/messages/listings/reports / 10 min, 20 uploads / 15 min, 10 password changes / 15 min, 30 admin AI actions / 15 min. AI recommendations: 10 / 15 min and 60 / day per user, 600 / hour for everyone together. |
+| Users | Wherever a user appears next to content (`author`, `seller`, `buyer`, `reporter`, `targetAuthor`) it is `{ id, username, avatarUrl }`; `avatarUrl` is `null` without a picture. |
+| Errors | `{ "error": "<message>", "details"?: [...] }` with a meaningful status: 400 invalid input, 401 not logged in / bad credentials, 403 not allowed, 404 not found, 409 conflict, 413 too large, 502 AI provider error, 503 AI features not configured (no `DEEPINFRA_API_KEY`) or no book embeddings yet. |
+| Pagination | `?page=1&limit=10` → `{ items, page, limit, total, totalPages }` |
+| Genres | Stored and sent as codes (`fiction`, `children_teens`, …). Responses carry `{ code, label }` with the Romanian label. Full list: `GET /api/genres`. |
+| Images | Responses contain ready-to-use URLs (`avatarUrl`, `imageUrl`, `coverUrl`, `mediaUrl`) relative to the server origin. Avatars and listing images are public static files. Chat media needs the bearer token. |
+| Empty success | `204 No Content` for deletes and password changes. |
+
+## Endpoints
+
+### Auth
+| Method | Path | Body | Response |
+|---|---|---|---|
+| POST | `/auth/availability` | `{ email?, username? }` | `{ emailAvailable?, usernameAvailable? }` |
+| POST | `/auth/register` | `{ email, username, password }` (password ≥ 8) | `201 { token, user }` |
+| POST | `/auth/login` | `{ email, password }` | `{ token, user }` |
+| POST 🔒 | `/auth/refresh` | — | `{ token, user }`: a fresh token for a still-valid session (the client renews active sessions before expiry) |
+
+`user` is the account object returned by `GET /api/me`. Rate limits per IP and 15 minutes: 20 for
+login + register, 300 for availability checks (safe to call while the user types).
+
+### Current user 🔒 (`/me`)
+| Method | Path | Notes |
+|---|---|---|
+| GET | `/me` | `{ id, email, username, description, avatarUrl, isAdmin, permissions: { canCreateListings, canCreateForums, canSendMessages, canReport }, createdAt }` |
+| PATCH | `/me` | `{ description }` |
+| PUT | `/me/password` | `{ currentPassword, newPassword }` → 204 |
+| PUT | `/me/avatar` | multipart, field `image` (jpg/png ≤ 5 MB) |
+| GET / PUT | `/me/favorite-genres` | PUT `{ genres: ["fiction", …] }` (0–5 distinct codes) → `{ genres: [{ code, label }] }` |
+| GET | `/me/reading-history` | `[{ id, rating, book: { id, title, author, coverUrl } }]` |
+| GET | `/me/recommendations` | book summaries |
+| POST | `/me/recommendations` | `{ query?, sentiment? }` (sentiment ∈ `anger`, `disgust`, `fear`, `joy`, `sadness`, `surprise`, `neutral`, optional). Regenerates recommendations: the books closest in meaning to `query`, or, without it, to the reader's taste (average embedding of the books they rated ≥ 4; favourite genres for new readers). Candidates are re-ranked by the emotion score and preferred genres, already-read books are skipped. Returns the new book summaries. 503 until embeddings exist. |
+| GET | `/me/listings` · `/me/forums` · `/me/chats` | own listings / forums (paginated) / conversations |
+
+### Users
+| Method | Path | Notes |
+|---|---|---|
+| GET | `/users/:userId` | public profile incl. `favoriteGenres` |
+| GET | `/users/:userId/avatar` | image file |
+| GET | `/users/:userId/listings` | listing summaries |
+| GET | `/users/:userId/forums` | paginated forums |
+
+### Books
+| Method | Path | Notes |
+|---|---|---|
+| GET | `/books` | `?search=&genres=fiction,history&minPrice=&maxPrice=&sort=price_asc\|price_desc\|title_asc\|title_desc&page=&limit=` → paginated summaries `{ id, title, author, isbn, genre, coverUrl, lowestPrice }`. `?ids=3,1,2` instead returns those books in that order. |
+| GET | `/books/lookup?query=` | quick title search (linking a listing to a book) |
+| GET | `/books/random` | 20 random summaries |
+| GET | `/books/:bookId` | details incl. `description`, `englishDescription`, `emotions` |
+| GET | `/books/:bookId/cover` | image (remote covers are proxied: HTTPS on `COVER_IMAGE_HOSTS` only, raster types, ≤ 5 MB) |
+| GET | `/books/:bookId/offers` | `[{ id, store, url, price }]` cheapest first |
+| GET | `/books/:bookId/listings` | marketplace listings for this book |
+| GET | `/books/:bookId/external-info` | `{ publisher, year, pageCount, language, offer? }` from Google Books, looked up server-side by ISBN, or `null` |
+| GET / PUT / DELETE 🔒 | `/books/:bookId/rating` | `{ isRead, rating }` · PUT `{ rating: 0-5 }` marks as read · DELETE unmarks |
+
+### Marketplace listings
+| Method | Path | Notes |
+|---|---|---|
+| GET | `/listings` | `?search=&genre=&minPrice=&maxPrice=&sort=newest\|oldest\|price_asc\|price_desc` → paginated available listings |
+| POST 🔒 | `/listings` | multipart: `image` (required), `title`, `description`, `price`, `genre`, `isNegotiable?`, `bookId?` → 201 |
+| GET | `/listings/:listingId` | details. `isOwner` is set when a token is sent. |
+| GET | `/listings/:listingId/image` | image file |
+| PATCH 🔒 owner | `/listings/:listingId` | `{ price?, isNegotiable? }` |
+| POST 🔒 owner | `/listings/:listingId/close` | marks as unavailable |
+| DELETE 🔒 owner | `/listings/:listingId` | deletes listing, its chats and files |
+| GET 🔒 | `/listings/:listingId/chat` | `{ chat \| null }`: your conversation about it |
+| POST 🔒 | `/listings/:listingId/chats` | `{ message }`: contact the seller → 201 chat |
+
+### Chats 🔒 (participants only)
+| Method | Path | Notes |
+|---|---|---|
+| GET | `/chats/:chatId` | `{ id, isOpen, isSeller, listing, seller, buyer, createdAt }` |
+| PATCH | `/chats/:chatId` | `{ isOpen }` (buyer only) |
+| GET | `/chats/:chatId/messages` | `[{ id, senderId, isOwn, isMedia, content, mediaUrl, createdAt }]` (admins may read too) |
+| POST | `/chats/:chatId/messages` | `{ content }` |
+| POST | `/chats/:chatId/media` | multipart, field `file` (jpg/png/pdf ≤ 10 MB) |
+| GET | `/chats/:chatId/messages/:messageId/media` | the file (participants and admins) |
+
+### Forums
+| Method | Path | Notes |
+|---|---|---|
+| GET | `/forums` | `?search=` paginated `{ id, title, isOpen, author, createdAt }` |
+| POST 🔒 | `/forums` | `{ title }` |
+| GET | `/forums/:forumId` | forum |
+| PATCH 🔒 owner | `/forums/:forumId` | `{ title?, isOpen? }` |
+| GET | `/forums/:forumId/messages` | paginated, newest first. Moderated messages have `isRemoved: true, content: null`. |
+| POST 🔒 | `/forums/:forumId/messages` | `{ content }` (forum must be open) |
+
+### Reports
+| Method | Path | Notes |
+|---|---|---|
+| POST 🔒 | `/reports` | `{ targetType: chat_message\|forum_message\|forum\|listing, targetId, reason }`. Chat messages can only be reported by the chat's participants. |
+| GET 🛡️ | `/reports` | `?status=open\|closed\|all` paginated |
+| GET 🛡️ | `/reports/:reportId` | report + `target` (reported content, `null` if deleted) + `targetAuthor` |
+| PATCH 🛡️ | `/reports/:reportId` | `{ isOpen }` |
+
+### Administration 🛡️ (`/admin`)
+| Method | Path | Notes |
+|---|---|---|
+| PUT | `/admin/users/:userId/permissions/:permission` | permission ∈ `createListings`, `createForums`, `sendMessages`, `report`. Body `{ granted }`. |
+| DELETE | `/admin/forum-messages/:messageId` | hides the message |
+| DELETE | `/admin/listings/:listingId` · `/admin/forums/:forumId` | delete content |
+| GET | `/admin/ai` | AI overview: `{ provider: { name, configured, baseUrl }, catalogue: { totalBooks }, embeddings: { model, dimensions, embeddedBooks, outdatedBooks, missingBooks }, emotions: { model, eligibleBooks, scoredBooks }, index: { loaded, vectors, memoryMb, … }, scraper: { available } }` |
+| POST | `/admin/ai/test` | embeds a sample query: `{ ok, model, nativeDimensions, storedDimensions, latencyMs, tokens }` (502/503 on failure) |
+| GET | `/admin/settings` | `{ values: { "<key>": value }, definitions: [{ key, group, type, default, min?, max?, maxLength? }] }` |
+| PATCH | `/admin/settings` | `{ "<key>": value \| null }` (null = reset to default); all values validated first → same shape as GET |
+| GET | `/admin/jobs` | `?type=scraper\|embeddings\|emotions&limit=` → `[{ id, type, status, params, total, processed, failed, message, result, startedBy, startedAt, finishedAt }]`, newest first |
+| POST | `/admin/jobs` | `{ type, params }` → 202 job. One job per type at a time (409). Params: scraper `{ fromPage?, toPage? }`; embeddings/emotions `{ scope?: "missing"\|"all", limit? }` |
+| GET | `/admin/jobs/:jobId` | one job, with live progress while running |
+| POST | `/admin/jobs/:jobId/cancel` | → 202; the job stops after its current step (status `cancelled`) |
+
+Job statuses: `running`, `completed`, `failed`, `cancelled`, `interrupted` (the server restarted mid-run).
+
+### Other
+`GET /statistics/listings`, `GET /statistics/books` (includes the 10 most prolific authors),
+`GET /statistics/authors?search=&limit=` (per-author price/genre stats, max 25) — all public, cached 5 min ·
+`GET /genres` · `GET /features` (`{ recommendations }`: whether the client should offer AI recommendations) · `GET /health`
+
+---
+
+## Migration guide for the client (old → new)
+
+Base URL changes: everything is now under `/api`. The old `/auth`, `/scraper`, `/statistici` and root-level routes are gone.
+
+| Old | New |
+|---|---|
+| `POST /auth/check-email`, `POST /auth/check-username` | `POST /api/auth/availability` |
+| `POST /auth/register` · `POST /auth/login` | same paths under `/api/auth` (now also return `user`) |
+| `GET /auth/getUtilizatorData` | `GET /api/me` |
+| `POST /auth/updateUtilizatorDescriere` | `PATCH /api/me` |
+| `POST /auth/updateUtilizatorParolaHash` `{oldPassword,newPassword}` | `PUT /api/me/password` `{currentPassword,newPassword}` |
+| `POST /auth/uploadImagineProfil` | `PUT /api/me/avatar` |
+| `GET /:userId/getImagineProfil` | `avatarUrl` field, or `GET /api/users/:userId/avatar` |
+| `GET /:userId/getUtilizatorPreferinte` · `POST /updateUtilizatorPreferinte` | `GET` / `PUT /api/me/favorite-genres` (genre codes) |
+| `GET /getProfile/:id` · `/getUserArticles/:id` · `/getUserForums/:id` | `GET /api/users/:id` · `/listings` · `/forums` |
+| `GET /generateRecommendationsForProfile` + Python recommender `request-recommendations` | `POST /api/me/recommendations` (with or without `query`; computed in the API) |
+| `GET /api/getRecomandariCarti` | `GET /api/me/recommendations` (full book summaries) |
+| `POST /api/postCartiIDs` + `POST /api/postCartiData` | `GET /api/books?…` (one call returns the cards) |
+| `GET /api/getRandomBooks` | `GET /api/books/random` |
+| `GET /api/:id/getCarteImagine` | `coverUrl` field |
+| `GET /api/carte/:id` · `/oferte` | `GET /api/books/:id` · `/offers` |
+| `GET /api/carte/:id/esteCitita`, `POST …/marcheazaCitita`, `POST …/demarcheazaCitita` | `GET` / `PUT` / `DELETE /api/books/:id/rating` |
+| `GET /api/getIstoric` | `GET /api/me/reading-history` |
+| `POST /api/bazar/fetchBooksShort` | `GET /api/books/lookup?query=` |
+| `GET /api/bazar/getAnuntRights` · `GET /api/getForumRights` | `permissions` in `GET /api/me` |
+| `POST /api/bazar/getAnuntIDs` + `POST /api/bazar/getAnunturiData` | `GET /api/listings?…` |
+| `POST /api/bazar/createAnunt` (`bookImage`, `anunt*` fields) | `POST /api/listings` (`image`, English fields) |
+| `GET /api/bazar/anunt/:id`, `…/sellerData`, `…/:id/checkOwning` | `GET /api/listings/:id` (`seller`, `isOwner`) |
+| `GET /api/bazar/:id/getAnuntImagine` | `imageUrl` field |
+| `GET /api/bazar/getAnunturileMeleIDs` | `GET /api/me/listings` |
+| `GET /api/bazar/anunturiIDs/:carteID` | `GET /api/books/:id/listings` |
+| `POST /api/bazar/updateAnunt` · `InchideAnunt/:id` · `StergeAnunt/:id` | `PATCH` · `POST …/close` · `DELETE /api/listings/:id` |
+| `POST /api/chat/getChatIDs` + `GET /api/chat/getChatData/:id` | `GET /api/me/chats` · `GET /api/chats/:id` |
+| `POST /api/chat/getChatMessagesIDs` + `GET /api/chat/getMesajData/:id` | `GET /api/chats/:id/messages` |
+| `GET /api/chat/getMesajMedia/:id` (was public!) | `mediaUrl` → `GET /api/chats/:chatId/messages/:id/media` 🔒 |
+| `POST /api/chat/sendMessage` · `/uploadMedia` | `POST /api/chats/:id/messages` · `/media` (field `file`) |
+| `GET /api/chat/checkAnuntContactat/:id` · `POST /api/chat/:id/createChat` | `GET /api/listings/:id/chat` · `POST /api/listings/:id/chats` |
+| `GET /api/chat/checkIsOpen/:id` · `GET /api/chat/openCloseChat/:id` | `isOpen` in `GET /api/chats/:id` · `PATCH /api/chats/:id {isOpen}` |
+| `GET /api/getForumuri` · `GET /api/getUserForumuri` | `GET /api/forums` · `GET /api/me/forums` |
+| `POST /api/createForum` | `POST /api/forums` |
+| `GET /api/forum/:id` · `/getTitle` | `GET /api/forums/:id/messages` · `GET /api/forums/:id` |
+| `POST /api/forum/:id/createMessage` | `POST /api/forums/:id/messages` |
+| `POST /api/forum/changeForumTitle` · `toggleForumStatus` | `PATCH /api/forums/:id` |
+| `POST /api/raport/creeazaRaport` (`tipObiect` MesajChat/…) | `POST /api/reports` (`targetType` chat_message/…) |
+| `POST /api/raport/getReportsIDs` + `getReportData` + `getExtendedReportData` | `GET /api/reports` · `GET /api/reports/:id` |
+| `POST /api/raport/closeReport/:id` | `PATCH /api/reports/:id {isOpen:false}` |
+| `POST /api/raport/disableRights` (`removedRights` = content type) | `PUT /api/admin/users/:id/permissions/:permission {granted:false}` |
+| `POST /api/raport/removeForumMessage/:id` · `deleteObject/:id` | `DELETE /api/admin/forum-messages/:id` · `/admin/listings/:id` · `/admin/forums/:id` |
+| `GET /scraper/startScraping` (public) | `POST /api/admin/jobs { type: "scraper" }` 🛡️ |
+| `GET /statistici/anunturi` · `/statistici/carti` | `GET /api/statistics/listings` · `/books` |
+| `/uploads/<file>` | `/uploads/images/<file>` |

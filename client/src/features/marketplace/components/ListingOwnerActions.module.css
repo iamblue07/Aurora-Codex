@@ -1,0 +1,31 @@
+.actions {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+
+.compact {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+}
+
+.form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+}
+
+.switch {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    font-weight: var(--weight-medium);
+    cursor: pointer;
+}
+
+.switch input {
+    width: 1.15rem;
+    height: 1.15rem;
+    accent-color: var(--color-primary);
+}

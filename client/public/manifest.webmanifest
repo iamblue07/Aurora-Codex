@@ -1,0 +1,14 @@
+{
+  "name": "Aurora Codex",
+  "short_name": "Aurora Codex",
+  "description": "Descoperă cărți, compară prețuri și discută cu alți cititori.",
+  "lang": "ro",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FFFBFE",
+  "theme_color": "#EE2E31",
+  "icons": [
+    { "src": "/apple-touch-icon.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

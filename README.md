@@ -11,8 +11,6 @@ Aurora Codex brings together everything a Romanian reader needs in one place:
 It was built as a Bachelor's thesis project. The interface is in Romanian; the code and the
 documentation are in English.
 
-**Live demo:** https://web-app-for-readers-with-ai-recomme.vercel.app
-
 > The demo runs on free hosting. The first visit after a long quiet period can take a minute
 > while the services wake up; after that, the app keeps them awake while it is open.
 

@@ -1,0 +1,208 @@
+/*
+ * Design tokens — the single source of truth for colours, typography, spacing, radii,
+ * shadows and motion. Components only ever reference these custom properties.
+ *
+ * Brand palette (from the original Aurora Codex design):
+ *   red #EE2E31 (accent), ink #090C08 (text), paper #FFFBFE (background), green #54EE2E.
+ */
+
+:root {
+    /* ---- Brand scale ---------------------------------------------------- */
+    --red-50: #fff1f1;
+    --red-100: #ffdfe0;
+    --red-200: #ffc4c5;
+    --red-300: #ff9a9c;
+    --red-400: #f9626a;
+    --red-500: #ee2e31;
+    --red-600: #d01d22;
+    --red-700: #ad1519;
+    --red-800: #8f161a;
+
+    --green-100: #e2fbd9;
+    --green-400: #54ee2e;
+    --green-600: #2e9e1a;
+    --green-700: #237a14;
+
+    --amber-100: #fff4d6;
+    --amber-600: #b7791f;
+
+    --ink-950: #090c08;
+    --ink-900: #171a16;
+    --ink-800: #23261f;
+    --ink-700: #3a3d36;
+    --ink-600: #55584f;
+    --ink-500: #75776f;
+    --ink-400: #9c9d95;
+    --ink-300: #c6c6bf;
+    --ink-200: #e4e2dd;
+    --ink-100: #f1efeb;
+    --paper: #fffbfe;
+
+    /* ---- Semantic colours (light theme) --------------------------------- */
+    --color-bg: var(--paper);
+    --color-bg-subtle: #fbf5f6;
+    --color-surface: #ffffff;
+    --color-surface-raised: #ffffff;
+    --color-surface-sunken: var(--ink-100);
+    --color-text: var(--ink-950);
+    --color-text-muted: var(--ink-600);
+    --color-text-subtle: var(--ink-500);
+    --color-text-inverse: var(--paper);
+    --color-border: rgba(9, 12, 8, 0.1);
+    --color-border-strong: rgba(9, 12, 8, 0.2);
+
+    --color-primary: var(--red-500);
+    --color-primary-hover: var(--red-600);
+    --color-primary-active: var(--red-700);
+    --color-primary-soft: var(--red-50);
+    --color-primary-soft-border: var(--red-100);
+    --color-on-primary: #ffffff;
+
+    --color-neutral-solid: var(--ink-950);
+    --color-neutral-solid-hover: var(--ink-800);
+    --color-on-neutral-solid: var(--paper);
+
+    --color-success: var(--green-600);
+    --color-success-soft: var(--green-100);
+    --color-danger: var(--red-600);
+    --color-danger-soft: var(--red-50);
+    --color-warning: var(--amber-600);
+    --color-warning-soft: var(--amber-100);
+
+    --color-focus-ring: rgba(238, 46, 49, 0.45);
+    --color-overlay: rgba(9, 12, 8, 0.55);
+    --color-skeleton: var(--ink-100);
+    --color-skeleton-shine: rgba(255, 255, 255, 0.7);
+
+    /* Charts: one validated series colour (brand red), recessive grid and axis ink. */
+    --chart-series-1: #ee2e31;
+    --chart-grid: rgba(9, 12, 8, 0.08);
+    --chart-axis: var(--ink-500);
+
+    /* Accent gradient used for hero panels and highlights. */
+    --gradient-brand: linear-gradient(135deg, #ee2e31 0%, #ff6b57 55%, #ffb36b 100%);
+    --gradient-glow: radial-gradient(60% 60% at 80% 0%, rgba(238, 46, 49, 0.14) 0%, transparent 70%),
+        radial-gradient(50% 50% at 0% 100%, rgba(84, 238, 46, 0.08) 0%, transparent 70%);
+
+    /* ---- Typography ------------------------------------------------------ */
+    --font-brand: 'Mochiy Pop P One', 'Baloo 2 Variable', system-ui, sans-serif;
+    --font-display: 'Baloo 2 Variable', 'Nunito Variable', system-ui, sans-serif;
+    --font-body: 'Nunito Variable', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+    --text-xs: 0.75rem;
+    --text-sm: 0.875rem;
+    --text-base: 1rem;
+    --text-md: 1.125rem;
+    --text-lg: 1.25rem;
+    --text-xl: 1.5rem;
+    --text-2xl: clamp(1.6rem, 1.3rem + 1vw, 2rem);
+    --text-3xl: clamp(2rem, 1.5rem + 2vw, 2.75rem);
+    --text-4xl: clamp(2.4rem, 1.6rem + 3.2vw, 3.6rem);
+
+    --weight-regular: 450;
+    --weight-medium: 600;
+    --weight-bold: 750;
+    --weight-black: 850;
+
+    --leading-tight: 1.2;
+    --leading-snug: 1.4;
+    --leading-normal: 1.6;
+
+    /* ---- Spacing (4px grid) ---------------------------------------------- */
+    --space-1: 0.25rem;
+    --space-2: 0.5rem;
+    --space-3: 0.75rem;
+    --space-4: 1rem;
+    --space-5: 1.25rem;
+    --space-6: 1.5rem;
+    --space-8: 2rem;
+    --space-10: 2.5rem;
+    --space-12: 3rem;
+    --space-16: 4rem;
+    --space-20: 5rem;
+
+    /* ---- Shape ----------------------------------------------------------- */
+    --radius-xs: 6px;
+    --radius-sm: 10px;
+    --radius-md: 14px;
+    --radius-lg: 20px;
+    --radius-xl: 28px;
+    --radius-full: 999px;
+
+    /* ---- Elevation ------------------------------------------------------- */
+    --shadow-xs: 0 1px 2px rgba(9, 12, 8, 0.06);
+    --shadow-sm: 0 1px 3px rgba(9, 12, 8, 0.06), 0 1px 2px rgba(9, 12, 8, 0.04);
+    --shadow-md: 0 6px 16px -6px rgba(9, 12, 8, 0.12), 0 2px 6px -2px rgba(9, 12, 8, 0.06);
+    --shadow-lg: 0 18px 40px -16px rgba(9, 12, 8, 0.22), 0 4px 12px -4px rgba(9, 12, 8, 0.08);
+    --shadow-primary: 0 10px 24px -10px rgba(238, 46, 49, 0.55);
+
+    /* ---- Motion ---------------------------------------------------------- */
+    --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+    --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+    --duration-fast: 120ms;
+    --duration-base: 200ms;
+    --duration-slow: 360ms;
+
+    /* ---- Layout ---------------------------------------------------------- */
+    --container-max: 1200px;
+    --container-narrow: 760px;
+    --header-height: 68px;
+    --z-header: 50;
+    --z-dropdown: 60;
+    --z-overlay: 90;
+    --z-modal: 100;
+    --z-toast: 120;
+
+    color-scheme: light;
+}
+
+/* ---- Dark theme -------------------------------------------------------------------------- */
+:root[data-theme='dark'] {
+    --color-bg: #110f10;
+    --color-bg-subtle: #161314;
+    --color-surface: #1b1819;
+    --color-surface-raised: #231f21;
+    --color-surface-sunken: #141112;
+    --color-text: #f6f1f3;
+    --color-text-muted: #b9b2b4;
+    --color-text-subtle: #8f888a;
+    --color-text-inverse: var(--ink-950);
+    --color-border: rgba(255, 255, 255, 0.09);
+    --color-border-strong: rgba(255, 255, 255, 0.18);
+
+    --color-primary: #ff4b4e;
+    --color-primary-hover: #ff6669;
+    --color-primary-active: #ff8082;
+    --color-primary-soft: rgba(255, 75, 78, 0.12);
+    --color-primary-soft-border: rgba(255, 75, 78, 0.28);
+
+    --color-neutral-solid: #f6f1f3;
+    --color-neutral-solid-hover: #ffffff;
+    --color-on-neutral-solid: var(--ink-950);
+
+    --color-success: #6ff04f;
+    --color-success-soft: rgba(84, 238, 46, 0.12);
+    --color-danger: #ff6b6e;
+    --color-danger-soft: rgba(255, 75, 78, 0.12);
+    --color-warning: #f2c063;
+    --color-warning-soft: rgba(242, 192, 99, 0.14);
+
+    --color-focus-ring: rgba(255, 75, 78, 0.55);
+    --color-overlay: rgba(0, 0, 0, 0.65);
+
+    /* Dark step of the same hue, validated for the dark surface's lightness band. */
+    --chart-series-1: #f5434a;
+    --chart-grid: rgba(255, 255, 255, 0.08);
+    --chart-axis: #8f888a;
+    --color-skeleton: #262123;
+    --color-skeleton-shine: rgba(255, 255, 255, 0.06);
+
+    --gradient-glow: radial-gradient(60% 60% at 80% 0%, rgba(255, 75, 78, 0.16) 0%, transparent 70%),
+        radial-gradient(50% 50% at 0% 100%, rgba(84, 238, 46, 0.06) 0%, transparent 70%);
+
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.5);
+    --shadow-md: 0 8px 20px -8px rgba(0, 0, 0, 0.6);
+    --shadow-lg: 0 20px 48px -16px rgba(0, 0, 0, 0.7);
+
+    color-scheme: dark;
+}

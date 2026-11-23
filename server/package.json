@@ -1,27 +1,49 @@
 {
-  "name": "server",
-  "version": "1.0.0",
-  "main": "server.mjs",
+  "name": "readers-app-server",
+  "version": "2.0.0",
+  "description": "REST API for the Web App for Readers With AI Recommendations",
+  "private": true,
+  "type": "module",
+  "main": "src/server.js",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
-    "start": "nodemon server.mjs"
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "lint": "eslint .",
+    "test": "node --test tests/unit/",
+    "test:integration": "node --test --test-concurrency=1 tests/integration/",
+    "db:migrate": "node src/database/cli.js up",
+    "db:rollback": "node src/database/cli.js down",
+    "db:status": "node src/database/cli.js status",
+    "user": "node scripts/manage-user.js",
+    "db:create-catalogue": "node scripts/create-catalogue-db.js",
+    "db:seed-demo": "node scripts/seed-demo.js",
+    "db:export": "node scripts/export-db.js"
   },
   "license": "ISC",
   "dependencies": {
-    "bcryptjs": "^3.0.2",
-    "cors": "^2.8.5",
-    "dotenv": "^16.4.7",
-    "express": "^4.21.2",
-    "fs": "^0.0.1-security",
-    "http": "^0.0.1-security",
-    "jsonwebtoken": "^9.0.2",
-    "kerberos": "^2.2.1",
-    "multer": "^1.4.5-lts.1",
-    "mysql": "^2.18.1",
-    "mysql2": "^3.12.0",
-    "nodemon": "^3.1.9",
-    "path": "^0.12.7",
-    "puppeteer": "^24.6.1",
-    "sequelize": "^6.37.5",
-    "user-agents": "^1.1.514"
+    "bcryptjs": "^3.0.3",
+    "compression": "^1.8.2",
+    "cors": "^2.8.6",
+    "dotenv": "^16.6.1",
+    "express": "^4.22.3",
+    "express-rate-limit": "^7.5.1",
+    "helmet": "^8.3.0",
+    "jsonwebtoken": "^9.0.3",
+    "multer": "^2.5.0",
+    "mysql2": "^3.24.6",
+    "sequelize": "^6.37.8",
+    "sharp": "^0.34.5",
+    "umzug": "^3.8.3"
+  },
+  "optionalDependencies": {
+    "puppeteer": "^24.43.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "eslint": "^9.39.5",
+    "globals": "^16.5.0"
   }
 }

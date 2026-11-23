@@ -1,0 +1,18 @@
+node_modules/
+.env
+.env.*
+!.env.example
+# Local credentials written by scripts/manage-user.js
+*.local.txt
+logs/
+*.log
+
+# Database dumps: large and contain personal data (emails, password hashes).
+db/init/*.sql
+# Deployment database dump, demo photos and demo credentials (scripts/seed-demo.js).
+db/deploy/
+*.sql.gz
+
+# Files uploaded at runtime. The images already tracked in git stay tracked.
+uploads/images/*-*.*
+uploads/chat-media/*-*.*

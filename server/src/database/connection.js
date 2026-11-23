@@ -1,6 +1,15 @@
+import fs from 'node:fs';
 import { Sequelize } from 'sequelize';
 import config from '../config/env.js';
 import logger from '../utils/logger.js';
+
+/** TLS options for hosted databases (never skips certificate verification). */
+const sslOptions = () => {
+    if (!config.db.ssl.enabled) return undefined;
+    const ssl = { rejectUnauthorized: true, minVersion: 'TLSv1.2' };
+    if (config.db.ssl.caFile) ssl.ca = fs.readFileSync(config.db.ssl.caFile, 'utf8');
+    return ssl;
+};
 
 const sequelize = new Sequelize(config.db.name, config.db.user, config.db.password, {
     host: config.db.host,
@@ -9,6 +18,7 @@ const sequelize = new Sequelize(config.db.name, config.db.user, config.db.passwo
     dialectOptions: {
         // Return DECIMAL columns (prices) as JS numbers instead of strings.
         decimalNumbers: true,
+        ssl: sslOptions(),
     },
     logging: config.db.logging ? (sql) => logger.debug(sql) : false,
     pool: { max: 10, min: 0, idle: 10_000, acquire: 30_000 },

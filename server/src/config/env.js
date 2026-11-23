@@ -82,6 +82,15 @@ const config = Object.freeze({
         /** Apply pending migrations when the server starts (handy on hosts without a shell). */
         migrateOnStart: toBool('DB_MIGRATE_ON_START', true),
         logging: toBool('DB_LOGGING', false),
+        /**
+         * TLS to the database, required by most hosted MySQL providers. The server certificate is
+         * verified against the system CAs, or against DB_SSL_CA_FILE when the provider uses its own
+         * CA (e.g. a Render "Secret File" at /etc/secrets/ca.pem).
+         */
+        ssl: Object.freeze({
+            enabled: toBool('DB_SSL', false),
+            caFile: optional('DB_SSL_CA_FILE', null),
+        }),
         /** Periodic `SELECT 1` so free-tier databases don't suspend (see database/keep-alive.js). */
         keepAlive: Object.freeze({
             enabled: toBool('DB_KEEPALIVE', true),

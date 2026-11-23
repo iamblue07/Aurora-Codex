@@ -1,0 +1,50 @@
+# Render Blueprint for the API (Dashboard → New → Blueprint → pick this repository).
+# Values marked `sync: false` are asked for when the Blueprint is created; they are never
+# stored in the repository. The client is deployed separately (e.g. on Vercel).
+services:
+  - type: web
+    name: aurora-codex-api
+    runtime: node
+    plan: free
+    region: frankfurt
+    rootDir: server
+    buildCommand: npm ci --omit=dev
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: NODE_ENV
+        value: production
+      # The scraper's headless Chrome needs more memory than the free plan offers:
+      # skip its ~170 MB download (the admin panel then shows the scraper as unavailable).
+      - key: PUPPETEER_SKIP_DOWNLOAD
+        value: "true"
+
+      # --- Database (a hosted MySQL 8; Render itself only offers PostgreSQL) ---
+      - key: DB_HOST
+        sync: false
+      - key: DB_PORT
+        sync: false
+      - key: DB_NAME
+        sync: false
+      - key: DB_USER
+        sync: false
+      - key: DB_PASS
+        sync: false
+      - key: DB_SSL
+        value: "true"
+
+      # --- Auth: a fresh random secret (never reuse the one from the old .env) ---
+      - key: SECRET_KEY
+        generateValue: true
+
+      # --- Client origin allowed by CORS, e.g. https://your-app.vercel.app ---
+      - key: FRONTEND_URL
+        sync: false
+
+      # --- Optional services (leave empty to disable) ---
+      - key: DEEPINFRA_API_KEY
+        sync: false
+      - key: GOOGLE_BOOKS_API_KEY
+        sync: false

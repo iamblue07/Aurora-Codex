@@ -257,14 +257,53 @@ Say you want users to bookmark listings.
 
 ## Deployment
 
-The app is designed to run on free hosting:
+The app is designed to run on free hosting: the API on **Render**, the client on **Vercel**, and
+MySQL on any MySQL 8 host. Render itself only offers PostgreSQL.
 
-- **Client:** any static host (e.g. Vercel). Set `VITE_API_URL` to the API's public URL before
-  building; `vercel.json` already rewrites routes to `index.html`.
-- **Server:** any Node.js host. Set the variables from `server/.env.example`.
-  Uploaded images live in `UPLOADS_DIR`, so point it at persistent storage if the host has any.
-- **Database:** any MySQL 8 host. Import the dump created by `npm run db:export`, and copy
-  `server/db/deploy/uploads/images` into the server's uploads folder.
+### 1. Database
+
+Create a MySQL 8 database at your provider and import the demo dump from
+[Releases](../../releases), or your own `npm run db:export`. Note the host, port, database name,
+user and password, and whether the provider gives you a CA certificate.
+
+### 2. API on Render
+
+In the Render dashboard, choose **New → Blueprint** and pick this repository. `render.yaml` sets
+everything up:
+
+- `server/` as the root, `npm ci --omit=dev`, `npm start`;
+- the `/health` check, Node 22 and a generated `SECRET_KEY`.
+
+Render then asks for the values below:
+
+| Variable | Value |
+|---|---|
+| `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASS` | your MySQL provider's connection details |
+| `FRONTEND_URL` | the client's URL, e.g. `https://your-app.vercel.app` (allowed by CORS) |
+| `DEEPINFRA_API_KEY` | optional: enables AI recommendations and the AI admin jobs |
+| `GOOGLE_BOOKS_API_KEY` | optional: extra book details |
+
+`DB_SSL=true` is preset. If your provider uses its own CA certificate, add it under the service's
+**Environment → Secret Files** as `ca.pem` and set `DB_SSL_CA_FILE=/etc/secrets/ca.pem`.
+Everything else in `server/.env.example` has a sensible default.
+
+On first start the server applies any pending migrations. Create your admin password with
+**Shell** → `npm run user -- reset-password aurora_admin` (or `make-admin` on your own account).
+
+### 3. Client on Vercel
+
+Import the repository, set the root directory to `client` and the environment variable
+`VITE_API_URL=https://<your-service>.onrender.com`, then deploy. `vercel.json` already rewrites
+routes to `index.html`.
+
+### Things to know about free plans
+
+- **Uploads are not permanent on Render's free plan.** It has no persistent disk, so photos
+  uploaded by users (and the demo listing photos) disappear on each deploy or restart. For
+  permanent uploads, attach a Render disk (paid) and point `UPLOADS_DIR` at it, or move uploads to
+  object storage.
+- **The scraper is disabled** on the free plan (`PUPPETEER_SKIP_DOWNLOAD`): headless Chrome needs
+  more memory than the plan offers. Run it locally against the production database if needed.
 
 **Free hosting puts idle services to sleep.** Two keep-alives prevent that while the app is in use:
 

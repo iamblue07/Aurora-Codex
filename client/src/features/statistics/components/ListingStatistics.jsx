@@ -1,3 +1,4 @@
+import { conditionLabel } from '@/features/marketplace/constants';
 import { prettyGenreLabel } from '@/shared/hooks/useGenres';
 import { formatPrice } from '@/shared/lib/format';
 import { ErrorState, Skeleton } from '@/shared/ui';
@@ -29,13 +30,18 @@ export default function ListingStatistics() {
     const byCount = [...genres].sort((a, b) => b.count - a.count).slice(0, TOP_GENRES);
     const byPrice = [...genres].sort((a, b) => b.averagePrice - a.averagePrice).slice(0, TOP_GENRES);
     const box = data.priceBoxPlot;
+    const conditions = (data.conditions ?? []).map((row) => ({ ...row, label: conditionLabel(row.condition) }));
 
     return (
         <div className={styles.grid}>
             <StatTile accent label="Anunțuri publicate" value={data.totalListings} />
-            <StatTile label="Disponibile acum" value={data.availableListings} />
-            <StatTile label="Vândute / închise" value={data.closedListings} />
-            <StatTile label="Preț median" value={formatPrice(box.median)} />
+            <StatTile
+                label="Disponibile acum"
+                value={data.availableListings}
+                hint={data.reservedListings > 0 ? `din care ${data.reservedListings} rezervate` : undefined}
+            />
+            <StatTile label="Cărți vândute" value={data.closedListings} />
+            <StatTile label="Preț median" value={box.median} decimals={2} format={formatPrice} hint={`${data.totalFavorites} salvări la favorite`} />
 
             <ChartCard
                 className={styles.wide}
@@ -63,6 +69,26 @@ export default function ListingStatistics() {
                         </div>
                     ))}
                 </dl>
+            </ChartCard>
+
+            <ChartCard
+                className={styles.half}
+                title="Starea cărților"
+                description="Anunțurile disponibile, după starea declarată."
+                table={{ columns: ['Stare', 'Anunțuri'], rows: conditions.map((row) => [row.label, row.count]) }}
+            >
+                <RankedBarChart data={conditions} labelKey="label" valueKey="count" formatValue={(value) => `${value}`} />
+            </ChartCard>
+
+            <ChartCard
+                className={styles.half}
+                title="Unde se vând"
+                description={`Orașele cu cele mai multe anunțuri · ${data.shippingListings} trimit și prin curier.`}
+                table={{ columns: ['Oraș', 'Anunțuri'], rows: data.cities.map((row) => [row.city, row.count]) }}
+            >
+                {data.cities.length > 0
+                    ? <RankedBarChart data={data.cities} labelKey="city" valueKey="count" formatValue={(value) => `${value}`} />
+                    : <p className={styles.muted}>Niciun anunț nu are încă orașul completat.</p>}
             </ChartCard>
 
             <ChartCard

@@ -1,5 +1,5 @@
 import { Suspense } from 'react';
-import { Outlet, ScrollRestoration } from 'react-router';
+import { Outlet, ScrollRestoration, useLocation } from 'react-router';
 import { LoadingState } from '@/shared/ui';
 import Footer from './Footer';
 import Header from './Header';
@@ -15,13 +15,17 @@ const scrollKey = (location) => (
 );
 
 export default function AppLayout() {
+    const { pathname } = useLocation();
     return (
         <div className={styles.shell}>
             <a href="#main" className={styles.skipLink}>Sari la conținut</a>
             <Header />
             <main id="main" className={styles.main}>
                 <Suspense fallback={<LoadingState />}>
-                    <Outlet />
+                    {/* Keyed by path: a new page replays the entrance animation, filters don't. */}
+                    <div key={pathname} className={styles.page}>
+                        <Outlet />
+                    </div>
                 </Suspense>
             </main>
             <Footer />

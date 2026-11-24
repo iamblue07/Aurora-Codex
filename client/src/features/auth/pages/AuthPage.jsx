@@ -2,7 +2,7 @@ import { useMutation } from '@tanstack/react-query';
 import { Lock, Mail, User } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
-import logo from '@/shared/assets/logo.webp';
+import logo from '@/shared/assets/logo.svg';
 import { getErrorMessage } from '@/shared/api/error-messages';
 import useDocumentTitle from '@/shared/hooks/useDocumentTitle';
 import { Button, Input, SegmentedControl } from '@/shared/ui';

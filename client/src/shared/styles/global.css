@@ -136,6 +136,22 @@ ol[role='list'] {
     border: 0;
 }
 
+/* Text painted with the aurora colours, shimmering slowly (brand wordmark, highlights). */
+.aurora-text {
+    background: var(--gradient-aurora-text);
+    background-size: 200% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: aurora-shimmer 10s var(--ease-in-out) infinite alternate;
+}
+
+@keyframes aurora-shimmer {
+    to {
+        background-position: 100% 0;
+    }
+}
+
 @media (prefers-reduced-motion: reduce) {
     *,
     *::before,

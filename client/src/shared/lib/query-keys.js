@@ -63,5 +63,6 @@ export const queryKeys = {
     statistics: {
         listings: ['statistics', 'listings'],
         books: ['statistics', 'books'],
+        community: ['statistics', 'community'],
     },
 };

@@ -5,6 +5,7 @@ import { queryKeys } from '@/shared/lib/query-keys';
 export const statisticsApi = {
     listings: () => http.get('/api/statistics/listings'),
     books: () => http.get('/api/statistics/books'),
+    community: () => http.get('/api/statistics/community'),
     authors: (params) => http.get('/api/statistics/authors', { query: params }),
 };
 
@@ -19,6 +20,12 @@ export const useListingStatistics = () => useQuery({
 export const useBookStatistics = () => useQuery({
     queryKey: queryKeys.statistics.books,
     queryFn: statisticsApi.books,
+    staleTime: FIVE_MINUTES,
+});
+
+export const useCommunityStatistics = () => useQuery({
+    queryKey: queryKeys.statistics.community,
+    queryFn: statisticsApi.community,
     staleTime: FIVE_MINUTES,
 });
 

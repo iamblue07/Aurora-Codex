@@ -1,5 +1,5 @@
 import { Link } from 'react-router';
-import logo from '@/shared/assets/logo.webp';
+import logo from '@/shared/assets/logo.svg';
 import { paths } from '../paths';
 import styles from './Footer.module.css';
 

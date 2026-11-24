@@ -300,6 +300,30 @@ describe('REST API', { skip }, () => {
         });
     });
 
+    describe('statistics', () => {
+        it('summarises the catalogue, the bazaar and the community', async () => {
+            const books = await api('GET', '/api/statistics/books');
+            assert.equal(books.status, 200);
+            assert.ok(books.body.totalBooks >= 1);
+            assert.ok(Array.isArray(books.body.stores));
+
+            const listings = await api('GET', '/api/statistics/listings');
+            assert.equal(listings.status, 200);
+            assert.deepEqual(
+                listings.body.conditions.map((row) => row.condition),
+                ['new', 'like_new', 'very_good', 'good', 'acceptable'],
+            );
+            assert.equal(typeof listings.body.totalFavorites, 'number');
+
+            const community = await api('GET', '/api/statistics/community');
+            assert.equal(community.status, 200);
+            assert.ok(community.body.members >= 3);
+            assert.deepEqual(community.body.ratingDistribution.map((row) => row.stars), [5, 4, 3, 2, 1]);
+            assert.equal(community.body.forumCategories.length, 7);
+            assert.equal(JSON.stringify(community.body).includes('email'), false);
+        });
+    });
+
     describe('marketplace and chats', () => {
         it('creates listings with validation and ownership rules', async () => {
             const { token } = state.alice;

@@ -1,10 +1,46 @@
 .shell {
+    position: relative;
     display: flex;
     flex-direction: column;
     min-height: 100dvh;
+}
+
+/* The aurora: soft glow ribbons at the top of every page, drifting very slowly. */
+.shell::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto;
+    z-index: -1;
+    height: 60rem;
     background-image: var(--gradient-glow);
     background-repeat: no-repeat;
-    background-size: 100% 60rem;
+    background-size: 130% 100%;
+    pointer-events: none;
+    animation: aurora-drift 24s var(--ease-in-out) infinite alternate;
+}
+
+@keyframes aurora-drift {
+    from {
+        background-position: 0% 0%;
+        opacity: 0.85;
+    }
+
+    to {
+        background-position: 100% 0%;
+        opacity: 1;
+    }
+}
+
+/* Each page fades in gently when the route changes. */
+.page {
+    animation: page-enter var(--duration-slow) var(--ease-out);
+}
+
+@keyframes page-enter {
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
 }
 
 .main {

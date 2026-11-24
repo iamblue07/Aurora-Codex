@@ -50,7 +50,7 @@ export const serializePublicProfile = (user, favoriteGenres = []) => ({
 // --- Books ---------------------------------------------------------------------------------
 
 /** Public URL of a book cover: remote covers are proxied, local ones are served statically. */
-const coverUrl = (book) => {
+export const coverUrl = (book) => {
     if (!book.coverImage) return null;
     return publicImageUrl(book.coverImage) ?? `/api/books/${book.id}/cover`;
 };

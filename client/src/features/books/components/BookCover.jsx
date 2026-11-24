@@ -6,7 +6,7 @@ import { FadeImage } from '@/shared/ui';
 import styles from './BookCover.module.css';
 
 const PALETTES = [
-    ['#ee2e31', '#ff8a5c'],
+    ['#0a8f6f', '#14b8c4'],
     ['#3a3d36', '#6b6f64'],
     ['#7c3aed', '#c084fc'],
     ['#0f766e', '#2dd4bf'],

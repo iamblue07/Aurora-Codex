@@ -7,7 +7,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router';
 import { toast } from 'sonner';
 import useAuth from '@/features/auth/useAuth';
-import logo from '@/shared/assets/logo.webp';
+import logo from '@/shared/assets/logo.svg';
 import useClickOutside from '@/shared/hooks/useClickOutside';
 import { Avatar, Button, IconButton, Menu } from '@/shared/ui';
 import { paths } from '../paths';
@@ -92,7 +92,7 @@ export default function Header() {
             <div className={styles.inner}>
                 <Link to={paths.home} className={styles.brand} aria-label="Aurora Codex — pagina principală">
                     <img src={logo} alt="" width="36" height="36" className={styles.logo} />
-                    <span className={styles.wordmark}>Aurora Codex</span>
+                    <span className={`${styles.wordmark} aurora-text`}>Aurora Codex</span>
                 </Link>
 
                 <nav id="main-navigation" className={clsx(styles.nav, mobileOpen && styles.navOpen)} aria-label="Navigare principală">

@@ -1,8 +1,9 @@
-import { BookOpen, Store } from 'lucide-react';
+import { BookOpen, Store, Users } from 'lucide-react';
 import useDocumentTitle from '@/shared/hooks/useDocumentTitle';
 import useSearchParamsState from '@/shared/hooks/useSearchParamsState';
 import { PageHeader, SegmentedControl } from '@/shared/ui';
 import BookStatistics from '../components/BookStatistics';
+import CommunityStatistics from '../components/CommunityStatistics';
 import ListingStatistics from '../components/ListingStatistics';
 import styles from './StatisticsPage.module.css';
 
@@ -17,7 +18,7 @@ export default function StatisticsPage() {
             <PageHeader
                 eyebrow="Date deschise"
                 title="Statistici"
-                subtitle="Cum arată catalogul de cărți și bazarul comunității, în cifre."
+                subtitle="Catalogul de cărți, bazarul și comunitatea Aurora Codex, în cifre."
             />
             <SegmentedControl
                 className={styles.tabs}
@@ -27,9 +28,12 @@ export default function StatisticsPage() {
                 options={[
                     { value: 'books', label: 'Catalogul de cărți', icon: <BookOpen /> },
                     { value: 'listings', label: 'Bazarul', icon: <Store /> },
+                    { value: 'community', label: 'Comunitatea', icon: <Users /> },
                 ]}
             />
-            {filters.view === 'listings' ? <ListingStatistics /> : <BookStatistics />}
+            {filters.view === 'listings' && <ListingStatistics />}
+            {filters.view === 'community' && <CommunityStatistics />}
+            {filters.view !== 'listings' && filters.view !== 'community' && <BookStatistics />}
         </div>
     );
 }

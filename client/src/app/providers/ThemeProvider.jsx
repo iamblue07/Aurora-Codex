@@ -24,7 +24,7 @@ export default function ThemeProvider({ children }) {
 
     useEffect(() => {
         document.documentElement.dataset.theme = theme;
-        document.querySelector('meta[name="theme-color"]')?.setAttribute('content', theme === 'dark' ? '#110f10' : '#EE2E31');
+        document.querySelector('meta[name="theme-color"]')?.setAttribute('content', theme === 'dark' ? '#070b16' : '#0a7d66');
     }, [theme]);
 
     const toggleTheme = useCallback(() => {

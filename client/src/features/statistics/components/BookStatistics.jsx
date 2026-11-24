@@ -119,12 +119,19 @@ export default function BookStatistics() {
     const data = stats.data;
     const genres = data.genres.map((row) => ({ ...row, label: prettyGenreLabel(row.genre.label) }));
     const shares = [...genres].sort((a, b) => b.percentOfBooks - a.percentOfBooks).slice(0, TOP_GENRES);
+    const stores = data.stores ?? [];
+    const offers = stores.reduce((sum, store) => sum + store.offers, 0);
 
     return (
         <div className={styles.grid}>
-            <StatTile accent label="Cărți în catalog" value={data.totalBooks.toLocaleString('ro-RO')} />
+            <StatTile accent label="Cărți în catalog" value={data.totalBooks} />
             <StatTile label="Genul dominant" value={data.topGenre ? prettyGenreLabel(data.topGenre.label) : '—'} hint={data.topGenre && `${formatPercent(data.topGenre.percentOfTotal)} din catalog`} />
             <StatTile label="Genuri literare" value={genres.length} />
+            <StatTile
+                label={stores.length === 1 ? 'Oferte de la librărie' : 'Librării monitorizate'}
+                value={stores.length === 1 ? stores[0].offers : stores.length}
+                hint={stores.length === 1 ? `${stores[0].store} · preț mediu ${formatPrice(stores[0].averagePrice)}` : `${offers.toLocaleString('ro-RO')} oferte`}
+            />
 
             <ChartCard
                 className={styles.wide}
@@ -134,6 +141,17 @@ export default function BookStatistics() {
             >
                 <RankedBarChart data={shares} labelKey="label" valueKey="percentOfBooks" formatValue={formatPercent} />
             </ChartCard>
+
+            {stores.length > 1 && (
+                <ChartCard
+                    className={styles.wide}
+                    title="Librăriile monitorizate"
+                    description="Câte oferte are fiecare librărie în catalog."
+                    table={{ columns: ['Librărie', 'Oferte', 'Preț mediu'], rows: stores.map((row) => [row.store, row.offers, formatPrice(row.averagePrice)]) }}
+                >
+                    <RankedBarChart data={stores} labelKey="store" valueKey="offers" formatValue={(value) => value.toLocaleString('ro-RO')} />
+                </ChartCard>
+            )}
 
             <GenrePriceExplorer genres={genres} />
             <AuthorExplorer topAuthors={data.topAuthors} />

@@ -48,5 +48,5 @@
 }
 
 :root[data-theme='dark'] .author {
-    color: var(--red-600);
+    color: var(--color-primary);
 }

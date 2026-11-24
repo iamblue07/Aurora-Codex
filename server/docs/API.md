@@ -142,7 +142,7 @@ The board is organised as **categories → threads (`forums`) → posts (`forum_
 Job statuses: `running`, `completed`, `failed`, `cancelled`, `interrupted` (the server restarted mid-run).
 
 ### Other
-`GET /statistics/listings`, `GET /statistics/books` (includes the 10 most prolific authors),
+`GET /statistics/listings` (prices, genres, conditions, cities, reservations, favourites), `GET /statistics/books` (genres, prices, stores, the 10 most prolific authors), `GET /statistics/community` (members, ratings and their distribution, best-rated books, forum activity per category, favourite genres),
 `GET /statistics/authors?search=&limit=` (per-author price/genre stats, max 25) — all public, cached 5 min ·
 `GET /genres` · `GET /features` (`{ recommendations, similarBooks }`: AI recommendations need embeddings and a key, similar books only embeddings) · `GET /health`
 

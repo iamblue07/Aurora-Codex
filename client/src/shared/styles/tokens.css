@@ -2,87 +2,96 @@
  * Design tokens — the single source of truth for colours, typography, spacing, radii,
  * shadows and motion. Components only ever reference these custom properties.
  *
- * Brand palette (from the original Aurora Codex design):
- *   red #EE2E31 (accent), ink #090C08 (text), paper #FFFBFE (background), green #54EE2E.
+ * Aurora palette: the northern lights over a polar night. Emerald and teal ribbons fading into
+ * violet, on cool arctic whites (light theme) or a deep night sky (dark theme).
+ * Text colours meet WCAG AA on their backgrounds; the chart colours are validated (dataviz checks).
  */
 
 :root {
-    /* ---- Brand scale ---------------------------------------------------- */
-    --red-50: #fff1f1;
-    --red-100: #ffdfe0;
-    --red-200: #ffc4c5;
-    --red-300: #ff9a9c;
-    --red-400: #f9626a;
-    --red-500: #ee2e31;
-    --red-600: #d01d22;
-    --red-700: #ad1519;
-    --red-800: #8f161a;
+    /* ---- Aurora scale (emerald → teal) ----------------------------------- */
+    --aurora-50: #ecfdf6;
+    --aurora-100: #d1faea;
+    --aurora-200: #a4f1d6;
+    --aurora-300: #6ce2bd;
+    --aurora-400: #34d399;
+    --aurora-500: #12b383;
+    --aurora-600: #0a8f6f;
+    --aurora-700: #0a7d66;
+    --aurora-800: #08604f;
 
-    --green-100: #e2fbd9;
-    --green-400: #54ee2e;
-    --green-600: #2e9e1a;
-    --green-700: #237a14;
+    /* Teal and violet: the upper, fading edge of the aurora. */
+    --teal-500: #14b8c4;
+    --teal-700: #0e7490;
+    --violet-400: #a78bfa;
+    --violet-500: #8b5cf6;
+    --violet-700: #6d28d9;
 
+    --rose-50: #fff1f2;
+    --rose-600: #dc2626;
     --amber-100: #fff4d6;
     --amber-600: #b7791f;
 
-    --ink-950: #090c08;
-    --ink-900: #171a16;
-    --ink-800: #23261f;
-    --ink-700: #3a3d36;
-    --ink-600: #55584f;
-    --ink-500: #75776f;
-    --ink-400: #9c9d95;
-    --ink-300: #c6c6bf;
-    --ink-200: #e4e2dd;
-    --ink-100: #f1efeb;
-    --paper: #fffbfe;
+    /* Night-sky neutrals (slightly blue). */
+    --night-950: #070b16;
+    --night-900: #0b1424;
+    --night-800: #1b2436;
+    --night-700: #334155;
+    --night-600: #4a5a6e;
+    --night-500: #66768a;
+    --night-400: #95a3b4;
+    --night-300: #c3cdd8;
+    --night-200: #e1e8ee;
+    --night-100: #edf2f5;
+    --snow: #f6f9fb;
 
     /* ---- Semantic colours (light theme) --------------------------------- */
-    --color-bg: var(--paper);
-    --color-bg-subtle: #fbf5f6;
+    --color-bg: var(--snow);
+    --color-bg-subtle: #eef5f5;
     --color-surface: #ffffff;
     --color-surface-raised: #ffffff;
-    --color-surface-sunken: var(--ink-100);
-    --color-text: var(--ink-950);
-    --color-text-muted: var(--ink-600);
-    --color-text-subtle: var(--ink-500);
-    --color-text-inverse: var(--paper);
-    --color-border: rgba(9, 12, 8, 0.1);
-    --color-border-strong: rgba(9, 12, 8, 0.2);
+    --color-surface-sunken: var(--night-100);
+    --color-text: var(--night-900);
+    --color-text-muted: var(--night-600);
+    --color-text-subtle: var(--night-500);
+    --color-text-inverse: var(--snow);
+    --color-border: rgba(11, 20, 36, 0.1);
+    --color-border-strong: rgba(11, 20, 36, 0.2);
 
-    --color-primary: var(--red-500);
-    --color-primary-hover: var(--red-600);
-    --color-primary-active: var(--red-700);
-    --color-primary-soft: var(--red-50);
-    --color-primary-soft-border: var(--red-100);
+    --color-primary: var(--aurora-700);
+    --color-primary-hover: var(--aurora-800);
+    --color-primary-active: #06493c;
+    --color-primary-soft: var(--aurora-50);
+    --color-primary-soft-border: var(--aurora-200);
     --color-on-primary: #ffffff;
+    --color-accent: var(--violet-700);
 
-    --color-neutral-solid: var(--ink-950);
-    --color-neutral-solid-hover: var(--ink-800);
-    --color-on-neutral-solid: var(--paper);
+    --color-neutral-solid: var(--night-900);
+    --color-neutral-solid-hover: var(--night-800);
+    --color-on-neutral-solid: var(--snow);
 
-    --color-success: var(--green-600);
-    --color-success-soft: var(--green-100);
-    --color-danger: var(--red-600);
-    --color-danger-soft: var(--red-50);
+    --color-success: #15803d;
+    --color-success-soft: #dcfce7;
+    --color-danger: var(--rose-600);
+    --color-danger-soft: var(--rose-50);
     --color-warning: var(--amber-600);
     --color-warning-soft: var(--amber-100);
 
-    --color-focus-ring: rgba(238, 46, 49, 0.45);
-    --color-overlay: rgba(9, 12, 8, 0.55);
-    --color-skeleton: var(--ink-100);
+    --color-focus-ring: rgba(10, 125, 102, 0.45);
+    --color-overlay: rgba(7, 11, 22, 0.6);
+    --color-skeleton: var(--night-100);
     --color-skeleton-shine: rgba(255, 255, 255, 0.7);
 
-    /* Charts: one validated series colour (brand red), recessive grid and axis ink. */
-    --chart-series-1: #ee2e31;
-    --chart-grid: rgba(9, 12, 8, 0.08);
-    --chart-axis: var(--ink-500);
+    /* Charts: one validated series colour (aurora green), recessive grid and axis ink. */
+    --chart-series-1: #0d8a6c;
+    --chart-grid: rgba(11, 20, 36, 0.08);
+    --chart-axis: var(--night-500);
 
-    /* Accent gradient used for hero panels and highlights. */
-    --gradient-brand: linear-gradient(135deg, #ee2e31 0%, #ff6b57 55%, #ffb36b 100%);
-    --gradient-glow: radial-gradient(60% 60% at 80% 0%, rgba(238, 46, 49, 0.14) 0%, transparent 70%),
-        radial-gradient(50% 50% at 0% 100%, rgba(84, 238, 46, 0.08) 0%, transparent 70%);
+    /* The aurora itself: emerald → teal → violet. Dark enough for white text in both themes. */
+    --gradient-brand: linear-gradient(135deg, #087a5f 0%, #0e7490 52%, #6d28d9 100%);
+    --gradient-aurora-text: linear-gradient(100deg, #0a8f6f 0%, #0e7490 45%, #7c3aed 100%);
+    --gradient-glow: radial-gradient(55% 45% at 85% 0%, rgba(18, 179, 131, 0.16) 0%, transparent 70%),
+        radial-gradient(45% 40% at 55% 0%, rgba(20, 184, 196, 0.1) 0%, transparent 70%),
+        radial-gradient(50% 50% at 0% 100%, rgba(139, 92, 246, 0.08) 0%, transparent 70%);
 
     /* ---- Typography ------------------------------------------------------ */
     --font-brand: 'Mochiy Pop P One', 'Baloo 2 Variable', system-ui, sans-serif;
@@ -130,11 +139,11 @@
     --radius-full: 999px;
 
     /* ---- Elevation ------------------------------------------------------- */
-    --shadow-xs: 0 1px 2px rgba(9, 12, 8, 0.06);
-    --shadow-sm: 0 1px 3px rgba(9, 12, 8, 0.06), 0 1px 2px rgba(9, 12, 8, 0.04);
-    --shadow-md: 0 6px 16px -6px rgba(9, 12, 8, 0.12), 0 2px 6px -2px rgba(9, 12, 8, 0.06);
-    --shadow-lg: 0 18px 40px -16px rgba(9, 12, 8, 0.22), 0 4px 12px -4px rgba(9, 12, 8, 0.08);
-    --shadow-primary: 0 10px 24px -10px rgba(238, 46, 49, 0.55);
+    --shadow-xs: 0 1px 2px rgba(11, 20, 36, 0.06);
+    --shadow-sm: 0 1px 3px rgba(11, 20, 36, 0.06), 0 1px 2px rgba(11, 20, 36, 0.04);
+    --shadow-md: 0 6px 16px -6px rgba(11, 20, 36, 0.12), 0 2px 6px -2px rgba(11, 20, 36, 0.06);
+    --shadow-lg: 0 18px 40px -16px rgba(11, 20, 36, 0.22), 0 4px 12px -4px rgba(11, 20, 36, 0.08);
+    --shadow-primary: 0 10px 24px -10px rgba(10, 125, 102, 0.5);
 
     /* ---- Motion ---------------------------------------------------------- */
     --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
@@ -156,53 +165,59 @@
     color-scheme: light;
 }
 
-/* ---- Dark theme -------------------------------------------------------------------------- */
+/* ---- Dark theme: the polar night ------------------------------------------------------------ */
 :root[data-theme='dark'] {
-    --color-bg: #110f10;
-    --color-bg-subtle: #161314;
-    --color-surface: #1b1819;
-    --color-surface-raised: #231f21;
-    --color-surface-sunken: #141112;
-    --color-text: #f6f1f3;
-    --color-text-muted: #b9b2b4;
-    --color-text-subtle: #8f888a;
-    --color-text-inverse: var(--ink-950);
-    --color-border: rgba(255, 255, 255, 0.09);
-    --color-border-strong: rgba(255, 255, 255, 0.18);
+    --color-bg: var(--night-950);
+    --color-bg-subtle: #0b1120;
+    --color-surface: #101829;
+    --color-surface-raised: #162036;
+    --color-surface-sunken: #0a101d;
+    --color-text: #e6eef5;
+    --color-text-muted: #a8b6c6;
+    --color-text-subtle: #7f8ea1;
+    --color-text-inverse: var(--night-950);
+    --color-border: rgba(214, 236, 255, 0.09);
+    --color-border-strong: rgba(214, 236, 255, 0.18);
 
-    --color-primary: #ff4b4e;
-    --color-primary-hover: #ff6669;
-    --color-primary-active: #ff8082;
-    --color-primary-soft: rgba(255, 75, 78, 0.12);
-    --color-primary-soft-border: rgba(255, 75, 78, 0.28);
+    --color-primary: var(--aurora-400);
+    --color-primary-hover: var(--aurora-300);
+    --color-primary-active: var(--aurora-200);
+    --color-primary-soft: rgba(52, 211, 153, 0.12);
+    --color-primary-soft-border: rgba(52, 211, 153, 0.3);
+    --color-on-primary: #04261c;
+    --color-accent: var(--violet-400);
 
-    --color-neutral-solid: #f6f1f3;
+    --color-neutral-solid: #e6eef5;
     --color-neutral-solid-hover: #ffffff;
-    --color-on-neutral-solid: var(--ink-950);
+    --color-on-neutral-solid: var(--night-950);
 
-    --color-success: #6ff04f;
-    --color-success-soft: rgba(84, 238, 46, 0.12);
-    --color-danger: #ff6b6e;
-    --color-danger-soft: rgba(255, 75, 78, 0.12);
-    --color-warning: #f2c063;
-    --color-warning-soft: rgba(242, 192, 99, 0.14);
+    --color-success: #4ade80;
+    --color-success-soft: rgba(74, 222, 128, 0.12);
+    --color-danger: #f87171;
+    --color-danger-soft: rgba(248, 113, 113, 0.12);
+    --color-warning: #fbbf24;
+    --color-warning-soft: rgba(251, 191, 36, 0.14);
 
-    --color-focus-ring: rgba(255, 75, 78, 0.55);
-    --color-overlay: rgba(0, 0, 0, 0.65);
+    --color-focus-ring: rgba(52, 211, 153, 0.55);
+    --color-overlay: rgba(2, 5, 12, 0.7);
 
     /* Dark step of the same hue, validated for the dark surface's lightness band. */
-    --chart-series-1: #f5434a;
-    --chart-grid: rgba(255, 255, 255, 0.08);
-    --chart-axis: #8f888a;
-    --color-skeleton: #262123;
+    --chart-series-1: #22ad80;
+    --chart-grid: rgba(214, 236, 255, 0.08);
+    --chart-axis: #7f8ea1;
+    --color-skeleton: #182235;
     --color-skeleton-shine: rgba(255, 255, 255, 0.06);
 
-    --gradient-glow: radial-gradient(60% 60% at 80% 0%, rgba(255, 75, 78, 0.16) 0%, transparent 70%),
-        radial-gradient(50% 50% at 0% 100%, rgba(84, 238, 46, 0.06) 0%, transparent 70%);
+    --gradient-aurora-text: linear-gradient(100deg, #34d399 0%, #22d3ee 45%, #a78bfa 100%);
+    /* Aurora curtains over the night sky. */
+    --gradient-glow: radial-gradient(60% 45% at 80% 0%, rgba(52, 211, 153, 0.16) 0%, transparent 70%),
+        radial-gradient(40% 35% at 45% 0%, rgba(34, 211, 238, 0.1) 0%, transparent 70%),
+        radial-gradient(50% 50% at 0% 100%, rgba(139, 92, 246, 0.12) 0%, transparent 70%);
 
     --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.5);
     --shadow-md: 0 8px 20px -8px rgba(0, 0, 0, 0.6);
     --shadow-lg: 0 20px 48px -16px rgba(0, 0, 0, 0.7);
+    --shadow-primary: 0 10px 28px -10px rgba(52, 211, 153, 0.45);
 
     color-scheme: dark;
 }

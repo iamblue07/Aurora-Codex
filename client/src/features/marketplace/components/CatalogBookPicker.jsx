@@ -12,7 +12,12 @@ import styles from './CatalogBookPicker.module.css';
  * Optional link between a listing and a catalogue book (search-as-you-type).
  * Linked listings appear on the book's page next to the bookstore offers.
  */
-export default function CatalogBookPicker({ value, onChange }) {
+export default function CatalogBookPicker({
+    value,
+    onChange,
+    label = 'Este o carte din catalog? (opțional)',
+    hint = 'Asocierea ajută cumpărătorii să compare prețul tău cu cel din librării.',
+}) {
     const [query, setQuery] = useState('');
     const debounced = useDebouncedValue(query.trim(), 350);
 
@@ -39,8 +44,8 @@ export default function CatalogBookPicker({ value, onChange }) {
     return (
         <div className={styles.picker}>
             <Input
-                label="Este o carte din catalog? (opțional)"
-                hint="Asocierea ajută cumpărătorii să compare prețul tău cu cel din librării."
+                label={label}
+                hint={hint}
                 placeholder="Caută titlul în catalog…"
                 leadingIcon={<Search />}
                 value={query}

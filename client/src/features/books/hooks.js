@@ -16,9 +16,10 @@ export const useRandomBooks = () => useQuery({
     staleTime: 10 * 60_000,
 });
 
-export const useBook = (id) => useQuery({
+export const useBook = (id, { enabled = true } = {}) => useQuery({
     queryKey: queryKeys.books.detail(id),
     queryFn: () => booksApi.get(id),
+    enabled,
 });
 
 export const useBookOffers = (id) => useQuery({

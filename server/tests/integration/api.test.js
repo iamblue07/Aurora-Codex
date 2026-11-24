@@ -321,21 +321,82 @@ describe('REST API', { skip }, () => {
     });
 
     describe('forums', () => {
-        it('creates forums, posts messages and enforces ownership and open status', async () => {
-            const forum = await api('POST', '/api/forums', { token: state.alice.token, body: { title: 'Ce citiți acum?' } });
+        it('lists the board categories', async () => {
+            const { status, body } = await api('GET', '/api/forums/categories');
+            assert.equal(status, 200);
+            assert.ok(body.categories.length >= 5);
+            state.categoryId = body.categories.find((category) => category.slug === 'discutii-generale').id;
+            assert.equal(typeof body.stats.threads, 'number');
+        });
+
+        it('creates a thread with its opening post and keeps the stats', async () => {
+            const missing = await api('POST', '/api/forums', { token: state.alice.token, body: { title: 'Ce citiți acum?' } });
+            assert.equal(missing.status, 400);
+
+            const forum = await api('POST', '/api/forums', {
+                token: state.alice.token,
+                body: { title: 'Ce citiți acum?', content: 'Spuneți-mi ce aveți pe noptieră.', categoryId: state.categoryId },
+            });
             assert.equal(forum.status, 201);
             state.forumId = forum.body.id;
+            assert.equal(forum.body.postCount, 1);
+            assert.equal(forum.body.category.slug, 'discutii-generale');
 
-            const message = await api('POST', `/api/forums/${state.forumId}/messages`, {
-                token: state.bob.token, body: { content: 'Dune!' },
+            const list = await api('GET', '/api/forums?category=discutii-generale');
+            assert.equal(list.body.items[0].id, state.forumId);
+            assert.equal(list.body.category.slug, 'discutii-generale');
+            assert.equal((await api('GET', '/api/forums?category=nope')).status, 404);
+        });
+
+        it('numbers replies, links quotes and counts views once per viewer', async () => {
+            const opening = (await api('GET', `/api/forums/${state.forumId}/messages`)).body.items[0];
+            const reply = await api('POST', `/api/forums/${state.forumId}/messages`, {
+                token: state.bob.token, body: { content: 'Dune!', replyToId: opening.id },
             });
-            assert.equal(message.status, 201);
-            state.forumMessageId = message.body.id;
+            assert.equal(reply.status, 201);
+            assert.equal(reply.body.position, 2);
+            state.forumMessageId = reply.body.id;
 
+            const { body } = await api('GET', `/api/forums/${state.forumId}/messages`);
+            assert.deepEqual(body.items.map((post) => post.position), [1, 2]);
+            assert.equal(body.items[1].replyTo.id, opening.id);
+            assert.equal(body.items[1].replyTo.author.username, 'alice');
+
+            await api('GET', `/api/forums/${state.forumId}`, { token: state.bob.token });
+            const thread = await api('GET', `/api/forums/${state.forumId}`, { token: state.bob.token });
+            assert.equal(thread.body.viewCount, 1);
+            assert.equal(thread.body.replyCount, 1);
+            assert.equal(thread.body.lastPost.author.username, 'bob');
+        });
+
+        it('likes posts, but not your own', async () => {
+            const url = `/api/forums/messages/${state.forumMessageId}/like`;
+            assert.equal((await api('PUT', url, { token: state.bob.token })).status, 400);
+            const liked = await api('PUT', url, { token: state.alice.token });
+            assert.deepEqual(liked.body, { likeCount: 1, likedByMe: true });
+            await api('PUT', url, { token: state.alice.token }); // idempotent
+
+            const { body } = await api('GET', `/api/forums/${state.forumId}/messages`, { token: state.alice.token });
+            assert.deepEqual([body.items[1].likeCount, body.items[1].likedByMe], [1, true]);
+            assert.deepEqual((await api('DELETE', url, { token: state.alice.token })).body, { likeCount: 0, likedByMe: false });
+        });
+
+        it('lets only the author edit a post', async () => {
+            const url = `/api/forums/messages/${state.forumMessageId}`;
+            assert.equal((await api('PATCH', url, { token: state.alice.token, body: { content: 'nope' } })).status, 403);
+            const edited = await api('PATCH', url, { token: state.bob.token, body: { content: 'Dune, evident.' } });
+            assert.equal(edited.status, 200);
+            assert.ok(edited.body.editedAt);
+        });
+
+        it('enforces ownership, admin-only fields and the open status', async () => {
             const hijack = await api('PATCH', `/api/forums/${state.forumId}`, { token: state.bob.token, body: { title: 'mine' } });
             assert.equal(hijack.status, 403);
+            const pin = await api('PATCH', `/api/forums/${state.forumId}`, { token: state.alice.token, body: { isPinned: true } });
+            assert.equal(pin.status, 403);
+
             await api('PATCH', `/api/forums/${state.forumId}`, { token: state.alice.token, body: { isOpen: false } });
-            const closed = await api('POST', `/api/forums/${state.forumId}/messages`, { token: state.bob.token, body: { content: 'x' } });
+            const closed = await api('POST', `/api/forums/${state.forumId}/messages`, { token: state.bob.token, body: { content: 'xx' } });
             assert.equal(closed.status, 403);
         });
     });
@@ -361,14 +422,19 @@ describe('REST API', { skip }, () => {
             const { token } = state.alice;
             assert.equal((await api('DELETE', `/api/admin/forum-messages/${state.forumMessageId}`, { token })).status, 204);
             const { body } = await api('GET', `/api/forums/${state.forumId}/messages`);
-            assert.deepEqual([body.items[0].isRemoved, body.items[0].content], [true, null]);
+            const removed = body.items.find((post) => post.id === state.forumMessageId);
+            assert.deepEqual([removed.isRemoved, removed.content], [true, null]);
         });
 
         it('revokes permissions and the revocation takes effect immediately', async () => {
             const url = `/api/admin/users/${state.bob.id}/permissions/sendMessages`;
             assert.equal((await api('PUT', url, { token: state.alice.token, body: { granted: false } })).status, 200);
-            const forum = await api('POST', '/api/forums', { token: state.carol.token, body: { title: 'Open forum' } });
-            const post = await api('POST', `/api/forums/${forum.body.id}/messages`, { token: state.bob.token, body: { content: 'x' } });
+            const forum = await api('POST', '/api/forums', {
+                token: state.carol.token,
+                body: { title: 'Open forum', content: 'Anyone can join here.', categoryId: state.categoryId },
+            });
+            assert.equal(forum.status, 201);
+            const post = await api('POST', `/api/forums/${forum.body.id}/messages`, { token: state.bob.token, body: { content: 'xx' } });
             assert.equal(post.status, 403);
         });
 

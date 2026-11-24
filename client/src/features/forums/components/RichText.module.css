@@ -1,0 +1,42 @@
+.richText {
+    color: var(--color-text);
+    line-height: 1.7;
+    overflow-wrap: anywhere;
+}
+
+.richText > * + * {
+    margin-top: var(--space-3);
+}
+
+.richText ul {
+    padding-left: var(--space-6);
+}
+
+.richText li + li {
+    margin-top: var(--space-1);
+}
+
+.richText blockquote {
+    padding: var(--space-2) var(--space-4);
+    border-left: 3px solid var(--color-primary);
+    border-radius: 0 var(--radius-md) var(--radius-md) 0;
+    background: var(--color-bg-subtle);
+    color: var(--color-text-muted);
+}
+
+.richText blockquote > * + * {
+    margin-top: var(--space-2);
+}
+
+.richText code {
+    padding: 0.1em 0.35em;
+    border-radius: var(--radius-sm);
+    background: var(--color-surface-sunken);
+    font-size: 0.9em;
+}
+
+.richText a {
+    color: var(--color-primary);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}

@@ -2,6 +2,7 @@ import { ArrowLeft, BookOpen, Calendar, FileText, Globe, Store } from 'lucide-re
 import { useState } from 'react';
 import { useParams } from 'react-router';
 import { paths } from '@/app/paths';
+import BookDiscussions from '@/features/forums/components/BookDiscussions';
 import { ListingGrid } from '@/features/marketplace/components/ListingCard';
 import useDocumentTitle from '@/shared/hooks/useDocumentTitle';
 import useGoBack from '@/shared/hooks/useGoBack';
@@ -148,6 +149,8 @@ export default function BookPage() {
                                 : <ListingGrid listings={listings.data ?? []} loading={listings.isPending} skeletonCount={3} />
                         )}
                     </section>
+
+                    <BookDiscussions bookId={data.id} titleClassName={styles.sectionTitle} />
                 </div>
             )}
         </article>

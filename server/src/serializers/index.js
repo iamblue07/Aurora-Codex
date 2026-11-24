@@ -141,20 +141,85 @@ export const serializeChatMessage = (message, currentUserId) => ({
 
 // --- Forums --------------------------------------------------------------------------------
 
+export const serializeForumCategory = (category) => ({
+    id: category.id,
+    slug: category.slug,
+    name: category.name,
+    description: category.description,
+    icon: category.icon,
+});
+
+/** A thread as listed and shown in its header. */
 export const serializeForum = (forum) => ({
     id: forum.id,
     title: forum.title,
     isOpen: forum.isOpen,
+    isPinned: forum.isPinned,
+    category: forum.category ? serializeForumCategory(forum.category) : null,
     author: authorRef(forum.author),
+    book: forum.book
+        ? { id: forum.book.id, title: forum.book.title, author: forum.book.author, coverUrl: coverUrl(forum.book) }
+        : null,
+    postCount: forum.messageCount,
+    replyCount: Math.max(0, forum.messageCount - 1),
+    viewCount: forum.viewCount,
+    lastPost: forum.lastMessageAt
+        ? { at: forum.lastMessageAt, author: authorRef(forum.lastMessageAuthor) }
+        : null,
     createdAt: forum.createdAt,
 });
 
-export const serializeForumMessage = (message) => ({
+export const serializeForumCategorySummary = ({ category, threadCount, postCount, latestThread }) => ({
+    ...serializeForumCategory(category),
+    threadCount,
+    postCount,
+    latestThread: latestThread
+        ? {
+            id: latestThread.id,
+            title: latestThread.title,
+            lastPostAt: latestThread.lastMessageAt,
+            lastPostAuthor: authorRef(latestThread.lastMessageAuthor),
+        }
+        : null,
+});
+
+const QUOTE_EXCERPT_LENGTH = 280;
+
+/**
+ * A post with its place in the thread. Removed posts keep their slot (numbering stays stable)
+ * but expose no content. The second argument holds the per-page extras computed by the service.
+ */
+export const serializeForumMessage = (message, extras = {}) => {
+    const { position = null, likeCount = 0, likedByViewer = false, authorPostCount = 0 } = extras;
+    return serializeForumPost(message, { position, likeCount, likedByViewer, authorPostCount });
+};
+
+const serializeForumPost = (message, { position, likeCount, likedByViewer, authorPostCount }) => ({
     id: message.id,
     forumId: message.forumId,
+    position,
     content: message.isRemoved ? null : message.content,
     isRemoved: message.isRemoved,
-    author: authorRef(message.author),
+    editedAt: message.editedAt ?? null,
+    author: message.author
+        ? {
+            ...authorRef(message.author),
+            isAdmin: Boolean(message.author.isAdmin),
+            joinedAt: message.author.createdAt,
+            postCount: authorPostCount,
+        }
+        : null,
+    replyTo: message.replyTo
+        ? {
+            id: message.replyTo.id,
+            author: message.replyTo.author
+                ? { id: message.replyTo.author.id, username: message.replyTo.author.username }
+                : null,
+            excerpt: message.replyTo.isRemoved ? null : message.replyTo.content.slice(0, QUOTE_EXCERPT_LENGTH),
+        }
+        : null,
+    likeCount,
+    likedByMe: likedByViewer,
     createdAt: message.createdAt,
 });
 

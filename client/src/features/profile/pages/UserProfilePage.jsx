@@ -3,12 +3,12 @@ import { useState } from 'react';
 import { useParams } from 'react-router';
 import { paths } from '@/app/paths';
 import useAuth from '@/features/auth/useAuth';
-import ForumCard from '@/features/forums/components/ForumCard';
+import ThreadList from '@/features/forums/components/ThreadList';
 import { ListingGrid } from '@/features/marketplace/components/ListingCard';
 import useDocumentTitle from '@/shared/hooks/useDocumentTitle';
 import { prettyGenreLabel } from '@/shared/hooks/useGenres';
 import { formatDate } from '@/shared/lib/format';
-import { Avatar, Badge, Button, Card, EmptyState, ErrorState, LoadingState, Pagination, SegmentedControl, Skeleton } from '@/shared/ui';
+import { Avatar, Badge, Button, Card, EmptyState, ErrorState, LoadingState, Pagination, SegmentedControl } from '@/shared/ui';
 import { useUserForums, useUserListings, useUserProfile } from '../hooks';
 import styles from './UserProfilePage.module.css';
 
@@ -29,14 +29,10 @@ function UserForums({ userId }) {
     const [page, setPage] = useState(1);
     const forums = useUserForums(userId, { page, limit: 8 }, true);
     if (forums.isError) return <ErrorState onRetry={forums.refetch} compact />;
-    if (forums.data?.total === 0) return <EmptyState icon={<LayoutList />} title="Niciun forum pornit" compact />;
+    if (forums.data?.total === 0) return <EmptyState icon={<LayoutList />} title="Nicio discuție pornită" compact />;
     return (
         <>
-            <div className={styles.forums}>
-                {forums.isPending
-                    ? [1, 2, 3].map((key) => <Skeleton key={key} height="5rem" radius="var(--radius-lg)" />)
-                    : forums.data.items.map((forum) => <ForumCard key={forum.id} forum={forum} />)}
-            </div>
+            <ThreadList threads={forums.data?.items ?? []} loading={forums.isPending} showCategory skeletonCount={3} />
             <Pagination page={page} totalPages={forums.data?.totalPages} onPageChange={setPage} />
         </>
     );

@@ -88,14 +88,20 @@ login + register, 300 for availability checks (safe to call while the user types
 | GET | `/chats/:chatId/messages/:messageId/media` | the file (participants and admins) |
 
 ### Forums
+The board is organised as **categories → threads (`forums`) → posts (`forum_messages`)**. Creating a thread also creates its opening post (position 1). Thread stats (`postCount`, `replyCount`, `viewCount`, `lastPost`) are stored on the thread and kept up to date on every write.
+
 | Method | Path | Notes |
 |---|---|---|
-| GET | `/forums` | `?search=` paginated `{ id, title, isOpen, author, createdAt }` |
-| POST 🔒 | `/forums` | `{ title }` |
-| GET | `/forums/:forumId` | forum |
-| PATCH 🔒 owner | `/forums/:forumId` | `{ title?, isOpen? }` |
-| GET | `/forums/:forumId/messages` | paginated, newest first. Moderated messages have `isRemoved: true, content: null`. |
-| POST 🔒 | `/forums/:forumId/messages` | `{ content }` (forum must be open) |
+| GET | `/forums/categories` | `{ categories: [{ id, slug, name, description, icon, threadCount, postCount, latestThread }], stats: { threads, posts, members } }` |
+| GET | `/forums` | `?category=<slug>&book=<id>&search=&sort=activity\|newest\|replies\|views&page=&limit=` (max 50). Paginated threads `{ id, title, isOpen, isPinned, category, author, book, postCount, replyCount, viewCount, lastPost: { at, author }, createdAt }` plus `category`. Pinned threads come first inside a category. |
+| POST 🔒 | `/forums` | `{ title (3–160), content (10–10 000), categoryId, bookId? }` → the thread (201). Needs `canCreateForums`. |
+| GET | `/forums/:forumId` | the thread; counts a view (once per user/IP every 30 min) |
+| PATCH 🔒 owner/admin | `/forums/:forumId` | `{ title?, isOpen? }`; administrators also `{ isPinned?, categoryId? }` |
+| GET | `/forums/:forumId/messages` | `?page=&limit=` (default 15, max 50), oldest first: `{ id, position, content, isRemoved, editedAt, author: { id, username, avatarUrl, isAdmin, joinedAt, postCount }, replyTo: { id, author, excerpt }, likeCount, likedByMe, createdAt }`. Removed posts have `content: null`. |
+| POST 🔒 | `/forums/:forumId/messages` | `{ content (2–10 000), replyToId? }` → `{ id, position }` (201). Thread must be open; `replyToId` must be a post of the same thread. Needs `canSendMessages`. |
+| PATCH 🔒 author | `/forums/messages/:messageId` | `{ content }` → `{ id, content, editedAt }` (thread must be open) |
+| DELETE 🔒 author | `/forums/messages/:messageId` | soft delete: the post stays as "deleted" so numbering is kept |
+| PUT · DELETE 🔒 | `/forums/messages/:messageId/like` | like / unlike → `{ likeCount, likedByMe }` (not your own posts) |
 
 ### Reports
 | Method | Path | Notes |

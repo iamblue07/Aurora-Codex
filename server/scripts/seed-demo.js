@@ -3,7 +3,10 @@
  * 20 fictional readers + 1 administrator, their favourite genres and ratings, forum threads,
  * marketplace listings (with generated photos), conversations and moderation reports.
  *
- *   node scripts/seed-demo.js [--reset] [--credentials <file>]
+ *   node scripts/seed-demo.js [--reset | --forums-only] [--credentials <file>]
+ *
+ * --forums-only replaces just the forum threads, posts, likes and forum reports of a database that
+ * already has the demo users (passwords, listings and chats stay).
  *
  * Uses the database and uploads folder from .env (DB_NAME, UPLOADS_DIR). Refuses to run when
  * the database already has users, unless --reset is given: that deletes every user and
@@ -23,9 +26,11 @@ import {
 } from './seed/demo-content.js';
 import { storeBuffer } from '../src/utils/files.js';
 import { renderListingImage } from './seed/listing-image.js';
+import { refreshForumStats } from '../src/services/forum.service.js';
 
 const args = process.argv.slice(2);
 const reset = args.includes('--reset');
+const forumsOnly = args.includes('--forums-only');
 const credentialsIndex = args.indexOf('--credentials');
 const credentialsFile = path.resolve(
     SERVER_ROOT,
@@ -71,7 +76,7 @@ const insert = (table, rows) => (rows.length ? sequelize.getQueryInterface().bul
 
 const USER_TABLES = [
     'reports', 'chat_messages', 'chats', 'listings', 'forum_messages', 'forums',
-    'recommendations', 'read_books', 'favorite_genres', 'background_jobs', 'users',
+    'forum_message_likes', 'recommendations', 'read_books', 'favorite_genres', 'background_jobs', 'users',
 ];
 
 const resetUsers = async () => {
@@ -102,6 +107,94 @@ const resolveBooks = async () => {
     return books;
 };
 
+/**
+ * Inserts the demo threads: category, linked book, pin, views, posts (with quoted replies) and
+ * likes from other demo readers. Returns the post ids per thread (for reports).
+ */
+const seedForums = async (userId, books) => {
+    const categories = Object.fromEntries((await query('SELECT id, slug FROM forum_categories')).map((row) => [row.slug, row.id]));
+    const likers = Object.keys(userId).filter((username) => username !== DEMO_ADMIN.username);
+    const forumMessageIds = [];
+    const likes = [];
+
+    for (const forum of DEMO_FORUMS) {
+        const start = forum.daysAgo * DAY;
+        await insert('forums', [{
+            category_id: categories[forum.category] ?? categories['discutii-generale'],
+            author_id: userId[forum.author],
+            title: forum.title,
+            book_id: forum.book ? books[forum.book]?.id ?? null : null,
+            is_open: forum.isOpen ? 1 : 0,
+            is_pinned: forum.isPinned ? 1 : 0,
+            view_count: forum.views ?? randomInt(40, 300),
+            created_at: at(start),
+        }]);
+        const [{ id: forumId }] = await query('SELECT MAX(id) AS id FROM forums');
+        let elapsed = 0;
+        await insert('forum_messages', forum.messages.map(([author, content, after = 0]) => {
+            elapsed += after * MINUTE;
+            return {
+                forum_id: forumId, author_id: userId[author], content, is_removed: 0, created_at: at(start - elapsed),
+            };
+        }));
+        const ids = (await query('SELECT id FROM forum_messages WHERE forum_id = :forumId ORDER BY id', { forumId }))
+            .map((row) => row.id);
+        forumMessageIds.push(ids);
+
+        for (const [index, quoted] of Object.entries(forum.replies ?? {})) {
+            await sequelize.query('UPDATE forum_messages SET reply_to_id = :quoted WHERE id = :id', {
+                replacements: { quoted: ids[quoted], id: ids[index] },
+            });
+        }
+
+        // Opening posts and longer answers collect more likes, as on a real board.
+        forum.messages.forEach(([author, content], index) => {
+            const base = index === 0 ? 4 : 1;
+            const count = Math.min(likers.length - 1, randomInt(0, base + Math.floor(content.length / 160)));
+            const pool = likers.filter((username) => username !== author);
+            for (let i = 0; i < count && pool.length; i += 1) {
+                const [liker] = pool.splice(randomInt(0, pool.length - 1), 1);
+                const likedAt = at(start - (index + 1) * 60 * MINUTE);
+                likes.push({ message_id: ids[index], user_id: userId[liker], created_at: likedAt });
+            }
+        });
+    }
+    await insert('forum_message_likes', likes);
+    await refreshForumStats((await query('SELECT id FROM forums')).map((row) => row.id));
+    return { forumMessageIds, likes: likes.length };
+};
+
+/** Moderation reports, resolved against the inserted posts and listings. */
+const buildReports = (userId, { forumMessageIds, listingIds = [] }) => DEMO_REPORTS.map((report) => {
+    const { forumMessage, listing } = report.target;
+    const targetId = forumMessage ? forumMessageIds[forumMessage[0]]?.[forumMessage[1]] : listingIds[listing]?.id;
+    if (!targetId) return null;
+    return {
+        reporter_id: userId[report.reporter],
+        target_type: forumMessage ? 'forum_message' : 'listing',
+        target_id: targetId,
+        reason: report.reason,
+        is_open: report.isOpen ? 1 : 0,
+        created_at: at(report.daysAgo * DAY),
+    };
+}).filter(Boolean);
+
+/** `--forums-only`: replaces the forum content of an already seeded database (users stay). */
+const reseedForums = async () => {
+    const userRows = await query('SELECT id, username FROM users');
+    const userId = Object.fromEntries(userRows.map((row) => [row.username, row.id]));
+    const missing = [DEMO_ADMIN, ...DEMO_USERS].filter((person) => !userId[person.username]);
+    if (missing.length) throw new Error(`--forums-only needs the demo users; missing: ${missing.map((p) => p.username).join(', ')}`);
+
+    await sequelize.query("DELETE FROM reports WHERE target_type IN ('forum', 'forum_message')");
+    await sequelize.query('DELETE FROM forums');
+    const books = await resolveBooks();
+    const { forumMessageIds, likes } = await seedForums(userId, books);
+    const reports = buildReports(userId, { forumMessageIds }).filter((report) => report.target_type === 'forum_message');
+    await insert('reports', reports);
+    console.log('Forums replaced:', { threads: DEMO_FORUMS.length, posts: forumMessageIds.flat().length, likes, reports: reports.length });
+};
+
 const main = async () => {
     await connectDatabase();
     ensureDirectories();
@@ -109,6 +202,10 @@ const main = async () => {
     const [{ users }] = await query('SELECT COUNT(*) AS users FROM users');
     const [{ books: bookCount }] = await query('SELECT COUNT(*) AS books FROM books');
     if (bookCount === 0) throw new Error('The catalogue is empty: seed a database that has books.');
+    if (forumsOnly) {
+        await reseedForums();
+        return;
+    }
     if (users > 0 && !reset) throw new Error(`Database "${config.db.name}" already has ${users} users. Use --reset to replace them.`);
     if (reset) await resetUsers();
 
@@ -173,23 +270,7 @@ const main = async () => {
     }
 
     // --- Forums and their messages --------------------------------------------------------------
-    const forumMessageIds = [];
-    for (const forum of DEMO_FORUMS) {
-        const start = forum.daysAgo * DAY;
-        await insert('forums', [{
-            author_id: userId[forum.author], title: forum.title, is_open: forum.isOpen ? 1 : 0, created_at: at(start),
-        }]);
-        const [{ id: forumId }] = await query('SELECT MAX(id) AS id FROM forums');
-        let elapsed = 0;
-        await insert('forum_messages', forum.messages.map(([author, content, after = 0]) => {
-            elapsed += after * MINUTE;
-            return {
-                forum_id: forumId, author_id: userId[author], content, is_removed: 0, created_at: at(start - elapsed),
-            };
-        }));
-        forumMessageIds.push((await query('SELECT id FROM forum_messages WHERE forum_id = :forumId ORDER BY id', { forumId }))
-            .map((row) => row.id));
-    }
+    const { forumMessageIds, likes } = await seedForums(userId, books);
 
     // --- Conversations ---------------------------------------------------------------------------
     let chats = 0;
@@ -217,19 +298,7 @@ const main = async () => {
     }
 
     // --- Reports -----------------------------------------------------------------------------------
-    const reports = DEMO_REPORTS.map((report) => {
-        const { forumMessage, listing } = report.target;
-        const targetId = forumMessage ? forumMessageIds[forumMessage[0]]?.[forumMessage[1]] : listingIds[listing]?.id;
-        if (!targetId) return null;
-        return {
-            reporter_id: userId[report.reporter],
-            target_type: forumMessage ? 'forum_message' : 'listing',
-            target_id: targetId,
-            reason: report.reason,
-            is_open: report.isOpen ? 1 : 0,
-            created_at: at(report.daysAgo * DAY),
-        };
-    }).filter(Boolean);
+    const reports = buildReports(userId, { forumMessageIds, listingIds });
     await insert('reports', reports);
 
     // --- Reading history: favourite genres plus a few discussed classics ---------------------------
@@ -276,6 +345,7 @@ const main = async () => {
         sold: listingIds.filter((l) => l && l.listing.soldAfterDays !== undefined).length,
         forums: DEMO_FORUMS.length,
         forumMessages: forumMessageIds.flat().length,
+        forumLikes: likes,
         chats,
         reports: reports.length,
     };

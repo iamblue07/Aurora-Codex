@@ -15,6 +15,9 @@ export const paths = {
     chat: (id = ':chatId') => `/bazar/conversatii/${id}`,
     forums: '/forumuri',
     forum: (id = ':forumId') => `/forumuri/${id}`,
+    /** `toate` lists the threads of every category. */
+    forumCategory: (slug = ':slug') => `/forumuri/categorie/${slug}`,
+    newThread: '/forumuri/discutie-noua',
     myForums: '/forumuri/ale-mele',
     profile: '/profil',
     readingHistory: '/profil/istoric',

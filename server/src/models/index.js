@@ -8,7 +8,9 @@ import defineChat from './Chat.js';
 import defineChatMessage from './ChatMessage.js';
 import defineFavoriteGenre from './FavoriteGenre.js';
 import defineForum from './Forum.js';
+import defineForumCategory from './ForumCategory.js';
 import defineForumMessage from './ForumMessage.js';
+import defineForumMessageLike from './ForumMessageLike.js';
 import defineListing from './Listing.js';
 import defineReadBook from './ReadBook.js';
 import defineRecommendation from './Recommendation.js';
@@ -26,6 +28,8 @@ const Chat = defineChat(sequelize);
 const ChatMessage = defineChatMessage(sequelize);
 const Forum = defineForum(sequelize);
 const ForumMessage = defineForumMessage(sequelize);
+const ForumCategory = defineForumCategory(sequelize);
+const ForumMessageLike = defineForumMessageLike(sequelize);
 const Report = defineReport(sequelize);
 const BookEmbedding = defineBookEmbedding(sequelize);
 const AppSetting = defineAppSetting(sequelize);
@@ -83,6 +87,13 @@ Forum.belongsTo(User, { foreignKey: 'authorId', as: 'author' });
 Forum.hasMany(ForumMessage, { foreignKey: 'forumId', as: 'messages' });
 ForumMessage.belongsTo(Forum, { foreignKey: 'forumId', as: 'forum' });
 ForumMessage.belongsTo(User, { foreignKey: 'authorId', as: 'author' });
+ForumMessage.belongsTo(ForumMessage, { foreignKey: 'replyToId', as: 'replyTo' });
+ForumMessage.hasMany(ForumMessageLike, { foreignKey: 'messageId', as: 'likes' });
+
+ForumCategory.hasMany(Forum, { foreignKey: 'categoryId', as: 'forums' });
+Forum.belongsTo(ForumCategory, { foreignKey: 'categoryId', as: 'category' });
+Forum.belongsTo(Book, { foreignKey: 'bookId', as: 'book' });
+Forum.belongsTo(User, { foreignKey: 'lastMessageAuthorId', as: 'lastMessageAuthor' });
 
 /**
  * Columns needed to show a user next to their content (name + avatar). Spread it
@@ -101,7 +112,9 @@ export {
     ChatMessage,
     FavoriteGenre,
     Forum,
+    ForumCategory,
     ForumMessage,
+    ForumMessageLike,
     Listing,
     ReadBook,
     Recommendation,

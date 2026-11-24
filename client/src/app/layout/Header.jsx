@@ -31,7 +31,7 @@ function UserMenu() {
         { label: 'Istoricul de lectură', icon: <BookMarked />, to: paths.readingHistory },
         { label: 'Anunțurile mele', icon: <Store />, to: paths.myListings },
         { label: 'Conversațiile mele', icon: <MessagesSquare />, to: paths.chats },
-        { label: 'Forumurile mele', icon: <LayoutDashboard />, to: paths.myForums },
+        { label: 'Discuțiile mele', icon: <LayoutDashboard />, to: paths.myForums },
         ...(isAdmin ? [
             'divider',
             { label: 'Panou de administrare', icon: <Settings2 />, to: paths.admin },

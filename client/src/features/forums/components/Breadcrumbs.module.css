@@ -1,0 +1,35 @@
+.breadcrumbs ol {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-1);
+    margin: 0;
+    color: var(--color-text-subtle);
+    font-size: var(--text-sm);
+}
+
+.item {
+    min-width: 0;
+    max-width: 22rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.item a {
+    color: var(--color-text-muted);
+    font-weight: var(--weight-bold);
+}
+
+.item a:hover {
+    color: var(--color-primary);
+}
+
+.separator {
+    display: flex;
+}
+
+.separator svg {
+    width: 0.9rem;
+    height: 0.9rem;
+}

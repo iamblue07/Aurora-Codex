@@ -168,10 +168,14 @@ export const BOOK_REFS = {
     cimitirulPraga: { title: 'Cimitirul din Praga', author: 'Umberto Eco' },
 };
 
-/** Forum threads: the first message is the author's opening post. */
+/**
+ * Forum threads: the first message is the author's opening post. `category` is a forum category
+ * slug, `book` a BOOK_REFS key, `replies` maps a message index to the index it quotes.
+ */
 export const DEMO_FORUMS = [
     {
         title: 'Clubul de carte – ce citim în decembrie?',
+        category: 'cluburi-de-carte', book: 'maestrul', views: 412, replies: { 1: 0, 5: 4 },
         author: 'cristina_reads', daysAgo: 21, isOpen: true,
         messages: [
             ['cristina_reads', 'Salutare tuturor! Ca în fiecare lună, alegem împreună cartea pentru întâlnirea din 14 decembrie. Propunerile mele: „Maestrul și Margareta”, „Un veac de singurătate” sau „Numele trandafirului”. Votați sau veniți cu altă idee!'],
@@ -185,6 +189,7 @@ export const DEMO_FORUMS = [
     },
     {
         title: 'Recomandări SF pentru cineva care a terminat Dune',
+        category: 'recomandari', book: 'dune', views: 538, replies: { 3: 2, 5: 4 },
         author: 'mihai_sf', daysAgo: 64, isOpen: true,
         messages: [
             ['mihai_sf', 'Tocmai am terminat seria Dune (inclusiv ultimele volume, da, și „Ereticii Dunei”). Simt un gol imens. Ce să citesc mai departe? Prefer SF cu worldbuilding serios, nu neapărat space opera.'],
@@ -197,6 +202,7 @@ export const DEMO_FORUMS = [
     },
     {
         title: 'Cărți pentru copii de 6–9 ani care chiar le plac copiilor',
+        category: 'recomandari', views: 367, replies: { 3: 1 },
         author: 'ioana.d', daysAgo: 47, isOpen: true,
         messages: [
             ['ioana.d', 'Am doi copii, 6 și 9 ani, și mă lupt să găsesc cărți care să le placă amândurora. Cele „educative” le resping din prima pagină 😅. Ce merge la voi acasă?'],
@@ -209,6 +215,7 @@ export const DEMO_FORUMS = [
     },
     {
         title: 'Enigma Otiliei – personaj tragic sau doar enigmatic?',
+        category: 'autori-si-opere', book: 'enigmaOtiliei', views: 621, replies: { 2: 1, 4: 3 },
         author: 'andreea.citeste', daysAgo: 88, isOpen: true,
         messages: [
             ['andreea.citeste', 'O întrebare pe care o pun la fiecare generație de elevi: este Otilia un personaj tragic? Sau Călinescu a construit-o intenționat ca pe o oglindă în care fiecare personaj masculin își proiectează dorințele?'],
@@ -221,6 +228,7 @@ export const DEMO_FORUMS = [
     },
     {
         title: 'Stoicismul în 2026 – mai are ceva de spus Marcus Aurelius?',
+        category: 'autori-si-opere', book: 'marcusAurelius', views: 455, replies: { 4: 1 },
         author: 'stefan_dobre', daysAgo: 112, isOpen: true,
         messages: [
             ['stefan_dobre', 'În fiecare iarnă recitesc „Gânduri către sine însuși”. Văd că stoicismul a devenit modă pe internet, cu citate pe fundaluri de munte. Mă întreb: ce înțeleg tinerii de azi din Marcus Aurelius?'],
@@ -232,6 +240,7 @@ export const DEMO_FORUMS = [
     },
     {
         title: 'Traduceri bune vs. traduceri proaste – exemple concrete',
+        category: 'discutii-generale', views: 289, replies: { 3: 2 },
         author: 'maria.tudor', daysAgo: 73, isOpen: true,
         messages: [
             ['maria.tudor', 'Ca traducătoare, primesc des întrebarea „merită să citesc în original?”. Răspunsul meu: depinde enorm de traducere. Hai să strângem exemple de traduceri românești excelente (și de cele care v-au enervat).'],
@@ -243,6 +252,7 @@ export const DEMO_FORUMS = [
     },
     {
         title: 'Bazarul – sfaturi pentru vânzători începători',
+        category: 'bazar-si-schimburi', views: 803, isPinned: true,
         author: 'aurora_admin', daysAgo: 150, isOpen: true,
         messages: [
             ['aurora_admin', 'Câteva sfaturi pentru anunțuri care se vând repede: 1) o fotografie clară, la lumină naturală; 2) descrieți sincer starea cărții (sublinieri, colțuri îndoite); 3) legați anunțul de cartea din catalog, ca cumpărătorii să vadă prețul din librării; 4) răspundeți repede la mesaje. Spor la vânzări!'],
@@ -253,6 +263,7 @@ export const DEMO_FORUMS = [
     },
     {
         title: 'Thrillere care chiar te țin treaz noaptea',
+        category: 'pe-genuri', book: 'shining', views: 392, replies: { 3: 1, 5: 4 },
         author: 'alex.georgescu', daysAgo: 35, isOpen: true,
         messages: [
             ['alex.georgescu', 'Sunt în sesiune și, evident, în loc să învăț Dreptul civil, caut thrillere. Ce carte v-a ținut treji până la 4 dimineața?'],
@@ -266,6 +277,7 @@ export const DEMO_FORUMS = [
     },
     {
         title: 'Rețete din cărți vechi românești',
+        category: 'pe-genuri', views: 176, replies: { 3: 2 },
         author: 'bogdan.munteanu', daysAgo: 99, isOpen: true,
         messages: [
             ['bogdan.munteanu', 'Am o colecție de cărți de bucate românești, unele din anii 70. Cineva mai gătește după ele? Cele mai bune ciorbe pe care le-am făcut vin dintr-o carte cu foile îngălbenite.'],
@@ -277,6 +289,7 @@ export const DEMO_FORUMS = [
     },
     {
         title: 'Poezie contemporană – ce mai citiți?',
+        category: 'pe-genuri', views: 143, replies: { 3: 2 },
         author: 'diana_poezie', daysAgo: 58, isOpen: true,
         messages: [
             ['diana_poezie', 'Simt că poezia contemporană românească trece aproape neobservată. Ce volume recente v-au plăcut? Eu am descoperit anul acesta câteva voci tinere extraordinare.'],
@@ -287,6 +300,7 @@ export const DEMO_FORUMS = [
     },
     {
         title: 'Cărți de dezvoltare personală care nu sunt clișee',
+        category: 'pe-genuri', book: 'atomicHabits', views: 512,
         author: 'vladc', daysAgo: 128, isOpen: false,
         messages: [
             ['vladc', 'Am citit zeci de cărți de self-help și majoritatea repetă aceleași trei idei. Care sunt excepțiile? Pentru mine: „Atomic Habits” și „Puterea obișnuinței”.'],
@@ -297,12 +311,46 @@ export const DEMO_FORUMS = [
     },
     {
         title: 'Reducerile de Black Friday la librării – merită?',
+        category: 'discutii-generale', views: 98, replies: { 1: 0 },
         author: 'radu_istorie', daysAgo: 6, isOpen: true,
         messages: [
             ['radu_istorie', 'An de an mă întreb dacă reducerile de Black Friday chiar sunt reduceri. Am urmărit câteva titluri pe pagina de prețuri a aplicației și unele erau mai ieftine acum o lună.'],
             ['vladc', 'Exact pentru asta folosesc comparația de prețuri de aici. Am găsit „Atomic Habits” cu 20 de lei mai ieftin într-o librărie mai mică.', 45],
             ['larisa.neagu', 'Eu am prins câteva albume de natură la jumătate de preț. Dar da, trebuie verificat — unele „reduceri” sunt de la un preț umflat cu o săptămână înainte.', 130],
             ['paul_enache', 'Sfat: puneți cărțile în coș din timp și urmăriți-le. Și mai sunt anticariatele și bazarul de aici — am luat două ghiduri de călătorie aproape noi la sub jumătate de preț.', 260],
+        ],
+    },
+    {
+        title: 'Bun venit pe forumurile Aurora Codex – citește înainte să postezi',
+        category: 'comunitate', views: 1240, isPinned: true,
+        author: 'aurora_admin', daysAgo: 160, isOpen: false,
+        messages: [
+            ['aurora_admin', `Bun venit în comunitatea Aurora Codex! 📚
+
+Câteva reguli simple, ca discuțiile să rămână plăcute pentru toată lumea:
+
+- **Alege categoria potrivită.** Recomandările merg la *Recomandări*, analizele la *Autori și opere*, iar cluburile de lectură la *Cluburi de carte*.
+- **Fără spoilere în titluri.** În mesaje, avertizează înainte: „Atenție, spoiler!”.
+- **Respect înainte de toate.** Critică ideile, nu oamenii.
+- **Fără reclame.** Anunțurile de vânzare au locul lor în Bazar.
+
+Poți cita un mesaj cu butonul *Citează*, poți aprecia răspunsurile utile și poți lega o discuție de o carte din catalog.
+
+> Dacă vezi ceva în neregulă, folosește butonul de raportare. Moderatorii verifică fiecare raport.
+
+Lectură plăcută!`],
+        ],
+    },
+    {
+        title: 'Sugestii pentru Aurora Codex – ce ați vrea să adăugăm?',
+        category: 'comunitate', views: 214, replies: { 2: 1, 4: 3 },
+        author: 'aurora_admin', daysAgo: 45, isOpen: true,
+        messages: [
+            ['aurora_admin', 'Suntem curioși: ce funcții v-ar face viața de cititor mai ușoară? Scrieți aici orice idee, oricât de mică.'],
+            ['gabi_nistor', 'O listă „Vreau să citesc” pe profil! Acum îmi notez titlurile într-un caiet, ca pe vremuri 😄', 180],
+            ['larisa.neagu', 'Plus unu pentru lista de citit. Și poate o notificare când o carte din listă apare la un preț mai mic.', 260],
+            ['radu_istorie', 'Mie mi-ar plăcea să pot vedea istoricul prețului unei cărți, nu doar oferta de azi.', 900],
+            ['aurora_admin', 'Mulțumim! Lista de lecturi și alertele de preț sunt deja pe lista noastră. Istoricul prețurilor e o idee foarte bună, o notăm.', 1500],
         ],
     },
 ];

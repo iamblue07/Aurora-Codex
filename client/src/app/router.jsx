@@ -33,6 +33,7 @@ export const router = createBrowserRouter([
             { path: paths.listing(), lazy: page(() => import('@/features/marketplace/pages/ListingPage')) },
             { path: paths.forums, lazy: page(() => import('@/features/forums/pages/ForumsPage')) },
             { path: paths.forum(), lazy: page(() => import('@/features/forums/pages/ForumPage')) },
+            { path: paths.forumCategory(), lazy: page(() => import('@/features/forums/pages/ForumCategoryPage')) },
             { path: paths.user(), lazy: page(() => import('@/features/profile/pages/UserProfilePage')) },
             { path: paths.statistics, lazy: page(() => import('@/features/statistics/pages/StatisticsPage')) },
             {
@@ -47,6 +48,7 @@ export const router = createBrowserRouter([
                     { path: paths.chats, lazy: page(() => import('@/features/chats/pages/ChatsPage')) },
                     { path: paths.chat(), lazy: page(() => import('@/features/chats/pages/ChatsPage')) },
                     { path: paths.myForums, lazy: page(() => import('@/features/forums/pages/MyForumsPage')) },
+                    { path: paths.newThread, lazy: page(() => import('@/features/forums/pages/NewThreadPage')) },
                     { path: paths.profile, lazy: page(() => import('@/features/profile/pages/ProfilePage')) },
                     { path: paths.readingHistory, lazy: page(() => import('@/features/profile/pages/ReadingHistoryPage')) },
                 ],

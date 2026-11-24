@@ -1,78 +1,122 @@
-import { LayoutList, MessagesSquare, Plus, Search } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { LayoutList, MessagesSquare, Plus, Search, Users } from 'lucide-react';
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router';
 import { paths } from '@/app/paths';
 import useAuth from '@/features/auth/useAuth';
-import useDebouncedValue from '@/shared/hooks/useDebouncedValue';
 import useDocumentTitle from '@/shared/hooks/useDocumentTitle';
-import useSearchParamsState from '@/shared/hooks/useSearchParamsState';
-import { Button, EmptyState, ErrorState, Input, PageHeader, Pagination, Skeleton } from '@/shared/ui';
-import CreateForumModal from '../components/CreateForumModal';
-import ForumCard from '../components/ForumCard';
-import { useForums } from '../hooks';
+import { formatCount, formatDateTime, formatRelativeTime } from '@/shared/lib/format';
+import { Avatar, Button, ErrorState, Input, PageHeader, Skeleton } from '@/shared/ui';
+import CategoryIcon from '../components/CategoryIcon';
+import ThreadList from '../components/ThreadList';
+import { useForumBoard, useForums } from '../hooks';
 import styles from './ForumsPage.module.css';
 
-const PAGE_SIZE = 12;
-const DEFAULT_FILTERS = { q: '', page: 1 };
+const RECENT_PARAMS = { sort: 'activity', limit: 8 };
 
+function CategoryRow({ category }) {
+    const latest = category.latestThread;
+    return (
+        <li className={styles.category}>
+            <CategoryIcon category={category} size="lg" />
+            <div className={styles.categoryText}>
+                <Link to={paths.forumCategory(category.slug)} className={styles.categoryName}>{category.name}</Link>
+                <p className={styles.categoryDescription}>{category.description}</p>
+            </div>
+            <dl className={styles.categoryStats}>
+                <div><dt>Discuții</dt><dd>{formatCount(category.threadCount)}</dd></div>
+                <div><dt>Mesaje</dt><dd>{formatCount(category.postCount)}</dd></div>
+            </dl>
+            <div className={styles.latest}>
+                {latest ? (
+                    <>
+                        <Avatar src={latest.lastPostAuthor?.avatarUrl} name={latest.lastPostAuthor?.username ?? '?'} size="sm" />
+                        <div className={styles.latestText}>
+                            <Link to={paths.forum(latest.id)} className={styles.latestTitle}>{latest.title}</Link>
+                            <span className={styles.latestMeta}>
+                                {latest.lastPostAuthor?.username ?? 'utilizator șters'} ·{' '}
+                                <time dateTime={latest.lastPostAt} title={formatDateTime(latest.lastPostAt)}>
+                                    {formatRelativeTime(latest.lastPostAt)}
+                                </time>
+                            </span>
+                        </div>
+                    </>
+                ) : <span className={styles.latestMeta}>Nicio discuție încă</span>}
+            </div>
+        </li>
+    );
+}
+
+/** The board: categories with their activity, plus the most recently active threads. */
 export default function ForumsPage() {
     useDocumentTitle('Forumuri');
-    const { isAuthenticated, permissions } = useAuth();
-    const [filters, setFilters] = useSearchParamsState(DEFAULT_FILTERS);
-    const [search, setSearch] = useState(filters.q);
-    const debouncedSearch = useDebouncedValue(search.trim());
-    const [creating, setCreating] = useState(false);
+    const { isAuthenticated } = useAuth();
+    const navigate = useNavigate();
+    const [search, setSearch] = useState('');
+    const board = useForumBoard();
+    const recent = useForums(RECENT_PARAMS);
 
-    useEffect(() => {
-        if (debouncedSearch !== filters.q) setFilters({ q: debouncedSearch });
-    }, [debouncedSearch, filters.q, setFilters]);
-
-    const forums = useForums({ search: filters.q, page: filters.page, limit: PAGE_SIZE });
-    const canCreate = isAuthenticated && permissions.canCreateForums !== false;
+    const submitSearch = (event) => {
+        event.preventDefault();
+        const query = search.trim();
+        navigate(query ? `${paths.forumCategory('toate')}?search=${encodeURIComponent(query)}` : paths.forumCategory('toate'));
+    };
 
     return (
-        <div>
+        <div className={styles.page}>
             <PageHeader
                 eyebrow="Comunitate"
                 title="Forumuri"
-                subtitle="Discută despre cărțile preferate, cere recomandări și descoperă ce citesc ceilalți."
-                actions={isAuthenticated && (
+                subtitle="Discută despre cărți, cere recomandări, organizează lecturi comune și află ce citesc ceilalți."
+                actions={(
                     <>
-                        <Button variant="secondary" leftIcon={<LayoutList />} to={paths.myForums}>Forumurile mele</Button>
-                        {canCreate && <Button leftIcon={<Plus />} onClick={() => setCreating(true)}>Forum nou</Button>}
+                        {isAuthenticated && <Button variant="soft" leftIcon={<LayoutList />} to={paths.myForums}>Discuțiile mele</Button>}
+                        <Button leftIcon={<Plus />} to={paths.newThread}>Discuție nouă</Button>
                     </>
                 )}
             />
 
-            <Input
-                className={styles.search}
-                aria-label="Caută un forum"
-                placeholder="Caută un forum…"
-                leadingIcon={<Search />}
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-            />
+            <div className={styles.toolbar}>
+                <form className={styles.search} onSubmit={submitSearch} role="search">
+                    <Input
+                        aria-label="Caută în forumuri"
+                        placeholder="Caută o discuție…"
+                        leadingIcon={<Search />}
+                        value={search}
+                        onChange={(event) => setSearch(event.target.value)}
+                    />
+                    <Button type="submit" variant="neutral">Caută</Button>
+                </form>
+                {board.data && (
+                    <ul className={styles.stats} aria-label="Statistici">
+                        <li><MessagesSquare aria-hidden="true" /><strong>{formatCount(board.data.stats.threads)}</strong> discuții</li>
+                        <li><LayoutList aria-hidden="true" /><strong>{formatCount(board.data.stats.posts)}</strong> mesaje</li>
+                        <li><Users aria-hidden="true" /><strong>{formatCount(board.data.stats.members)}</strong> membri activi</li>
+                    </ul>
+                )}
+            </div>
 
-            {isAuthenticated && permissions.canCreateForums === false && (
-                <p className={styles.notice}>Dreptul tău de a crea forumuri a fost retras de un administrator, în urma încălcării regulamentului.</p>
-            )}
-
-            {forums.isError ? <ErrorState onRetry={forums.refetch} /> : forums.data?.total === 0 ? (
-                <EmptyState
-                    icon={<MessagesSquare />}
-                    title={filters.q ? 'Niciun forum găsit' : 'Încă nu există forumuri'}
-                    description={filters.q ? 'Încearcă alți termeni de căutare.' : 'Pornește prima discuție a comunității!'}
-                    action={canCreate && <Button leftIcon={<Plus />} onClick={() => setCreating(true)}>Forum nou</Button>}
-                />
-            ) : (
-                <div className={styles.list}>
-                    {forums.isPending
-                        ? Array.from({ length: 6 }, (_, index) => <Skeleton key={index} height="5rem" radius="var(--radius-lg)" />)
-                        : forums.data.items.map((forum) => <ForumCard key={forum.id} forum={forum} />)}
+            <section aria-labelledby="board" className={styles.board}>
+                <div className={styles.boardHead}>
+                    <h2 id="board" className={styles.boardTitle}>Categorii</h2>
+                    <Link to={paths.forumCategory('toate')} className={styles.allLink}>Toate discuțiile →</Link>
                 </div>
-            )}
+                {board.isError ? <ErrorState onRetry={board.refetch} compact /> : (
+                    <ul className={styles.categories} role="list">
+                        {board.isPending
+                            ? Array.from({ length: 6 }, (_, index) => <li key={index} className={styles.category}><Skeleton height="3.5rem" className={styles.wide} /></li>)
+                            : board.data.categories.map((category) => <CategoryRow key={category.id} category={category} />)}
+                    </ul>
+                )}
+            </section>
 
-            <Pagination page={filters.page} totalPages={forums.data?.totalPages} onPageChange={(page) => setFilters({ page })} />
-            <CreateForumModal open={creating} onClose={() => setCreating(false)} />
+            <section aria-labelledby="recent">
+                <div className={styles.boardHead}>
+                    <h2 id="recent" className={styles.boardTitle}>Discuții recente</h2>
+                </div>
+                {recent.isError
+                    ? <ErrorState onRetry={recent.refetch} compact />
+                    : <ThreadList threads={recent.data?.items ?? []} loading={recent.isPending} showCategory skeletonCount={5} />}
+            </section>
         </div>
     );
 }

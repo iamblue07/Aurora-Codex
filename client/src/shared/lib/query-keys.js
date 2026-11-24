@@ -36,6 +36,7 @@ export const queryKeys = {
     },
     forums: {
         all: ['forums'],
+        board: ['forums', 'board'],
         list: (params) => ['forums', 'list', params],
         detail: (id) => ['forums', id],
         messages: (id, params) => ['forums', id, 'messages', params],

@@ -1,0 +1,44 @@
+.tile {
+    display: inline-grid;
+    flex: none;
+    place-items: center;
+    border-radius: var(--radius-md);
+    background: hsl(var(--tile-hue) 85% 55% / 0.14);
+    color: hsl(var(--tile-hue) 70% 42%);
+}
+
+:global([data-theme='dark']) .tile {
+    background: hsl(var(--tile-hue) 70% 60% / 0.16);
+    color: hsl(var(--tile-hue) 80% 72%);
+}
+
+.sm {
+    width: 1.75rem;
+    height: 1.75rem;
+}
+
+.sm svg {
+    width: 0.95rem;
+    height: 0.95rem;
+}
+
+.md {
+    width: 2.75rem;
+    height: 2.75rem;
+}
+
+.md svg {
+    width: 1.35rem;
+    height: 1.35rem;
+}
+
+.lg {
+    width: 3.5rem;
+    height: 3.5rem;
+    border-radius: var(--radius-lg);
+}
+
+.lg svg {
+    width: 1.75rem;
+    height: 1.75rem;
+}

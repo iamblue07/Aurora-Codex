@@ -1,11 +1,14 @@
 import jwt from 'jsonwebtoken';
 import config from '../config/env.js';
 
-// HS256 is what the Python recommender service expects when it validates the same tokens.
 const ALGORITHM = 'HS256';
 
-export const signToken = (user) =>
-    jwt.sign({ id: user.id }, config.auth.secret, { algorithm: ALGORITHM, expiresIn: config.auth.tokenTtl });
+/** Tokens carry the user id and their session version (`v`, see session.service.js). */
+export const signToken = (user) => jwt.sign(
+    { id: user.id, v: user.tokenVersion ?? 0 },
+    config.auth.secret,
+    { algorithm: ALGORITHM, expiresIn: config.auth.tokenTtl },
+);
 
 export const verifyToken = (token) => jwt.verify(token, config.auth.secret, { algorithms: [ALGORITHM] });
 
@@ -17,13 +20,17 @@ export const extractBearerToken = (header) => {
 };
 
 /**
- * Returns the authenticated user id carried by a header value.
- * Throws if the token is missing, invalid, expired or doesn't carry a valid id.
+ * The user id and session version carried by a header value. Throws if the token is missing,
+ * invalid, expired or doesn't carry a valid id. Tokens issued before versions existed count as 0.
+ * @returns {{ id: number, version: number }}
  */
-export const userIdFromAuthorization = (header) => {
+export const claimsFromAuthorization = (header) => {
     const token = extractBearerToken(header);
     if (!token) throw new Error('missing bearer token');
-    const id = Number(verifyToken(token).id);
+    const payload = verifyToken(token);
+    const id = Number(payload.id);
     if (!Number.isSafeInteger(id) || id <= 0) throw new Error('token carries no valid user id');
-    return id;
+    const version = payload.v === undefined ? 0 : Number(payload.v);
+    if (!Number.isSafeInteger(version) || version < 0) throw new Error('token carries no valid version');
+    return { id, version };
 };

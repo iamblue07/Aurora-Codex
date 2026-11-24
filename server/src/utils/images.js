@@ -5,6 +5,11 @@ import sharp from 'sharp';
 /** Longest side, in pixels, of every stored photo (plenty for the largest place it is shown). */
 export const MAX_IMAGE_DIMENSION = 1200;
 const WEBP_QUALITY = 80;
+/**
+ * Images are decoded in memory: refuse anything above 50 megapixels (any phone photo fits), so a
+ * tiny file claiming huge dimensions (a "decompression bomb") can't exhaust the server's memory.
+ */
+const MAX_INPUT_PIXELS = 50_000_000;
 
 /**
  * Re-encodes an uploaded photo as a compressed WebP no larger than MAX_IMAGE_DIMENSION, honouring
@@ -18,7 +23,7 @@ export const optimizeImageFile = async (filePath) => {
     const outputPath = path.join(parsed.dir, `${parsed.name}.webp`);
     // Work in memory: a .webp upload has the same output path, and libvips can't overwrite a
     // file it is reading (on Windows it also keeps the input open until its cache drops it).
-    const data = await sharp(await fs.readFile(filePath))
+    const data = await sharp(await fs.readFile(filePath), { limitInputPixels: MAX_INPUT_PIXELS })
         .rotate()
         .resize({ width: MAX_IMAGE_DIMENSION, height: MAX_IMAGE_DIMENSION, fit: 'inside', withoutEnlargement: true })
         .webp({ quality: WEBP_QUALITY })

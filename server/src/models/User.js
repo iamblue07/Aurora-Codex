@@ -7,6 +7,8 @@ export default (sequelize) => {
         email: { type: DataTypes.STRING, allowNull: false },
         username: { type: DataTypes.STRING(64), allowNull: false },
         passwordHash: { type: DataTypes.STRING, allowNull: false },
+        /** Part of every token: incrementing it signs the user out everywhere. */
+        tokenVersion: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
         description: { type: DataTypes.TEXT, allowNull: true },
         avatarPath: { type: DataTypes.STRING, allowNull: true },
         canCreateListings: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },

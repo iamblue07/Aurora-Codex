@@ -2,7 +2,9 @@ import { http } from '@/shared/api/http-client';
 
 export const accountApi = {
     update: (changes) => http.patch('/api/me', changes),
+    /** Returns `{ token }`: the other sessions are signed out, this one continues with it. */
     changePassword: (passwords) => http.put('/api/me/password', passwords),
+    signOutEverywhere: () => http.post('/api/me/sessions/revoke'),
     uploadAvatar: (file) => {
         const data = new FormData();
         data.append('image', file);

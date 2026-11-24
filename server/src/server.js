@@ -17,7 +17,14 @@ const start = async () => {
     if (config.db.migrateOnStart) await runMigrations();
     await markInterruptedJobs();
 
+    if (config.auth.secret.length < 32) {
+        logger.warn('SECRET_KEY is shorter than 32 characters: use a long random value (e.g. `openssl rand -hex 32`).');
+    }
+
     const server = http.createServer(createApp());
+    // Slow or stalled clients can't hold connections open forever (uploads get two minutes).
+    server.headersTimeout = 20_000;
+    server.requestTimeout = 120_000;
     server.listen(config.port, () => {
         logger.info(`Server listening on port ${config.port} (${config.env})`);
         warmUpSearchIndex(); // background: requests are served meanwhile

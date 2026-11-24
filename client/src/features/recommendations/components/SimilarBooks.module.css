@@ -1,0 +1,22 @@
+.section {
+    grid-column: 1 / -1;
+}
+
+.title {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.icon {
+    flex: none;
+    width: 1.1rem;
+    height: 1.1rem;
+    color: var(--color-primary);
+}
+
+.hint {
+    margin: calc(var(--space-2) * -1) 0 var(--space-4);
+    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+}

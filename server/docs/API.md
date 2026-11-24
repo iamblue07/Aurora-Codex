@@ -8,14 +8,14 @@ the client shows its own Romanian texts). Missing optional data is `null` (e.g. 
 
 | Topic | Rule |
 |---|---|
-| Auth | `Authorization: Bearer <jwt>` (from `/api/auth/login` or `/register`). 🔒 = required, 🛡️ = administrator. |
-| Rate limits | 429 `{ error }` with `RateLimit` headers when exceeded. Per IP: 1500 requests / 15 min on `/api`, 20 login/register attempts / 15 min. Per user: 60 posts/messages/listings/reports / 10 min, 20 uploads / 15 min, 10 password changes / 15 min, 30 admin AI actions / 15 min. AI recommendations: 10 / 15 min and 60 / day per user, 600 / hour for everyone together. |
+| Auth | `Authorization: Bearer <jwt>` (from `/api/auth/login` or `/register`). 🔒 = required, 🛡️ = administrator. Tokens are revocable: changing the password or `POST /me/sessions/revoke` invalidates every earlier token, and tokens of deleted accounts stop working. |
+| Rate limits | 429 `{ error }` with `RateLimit` headers when exceeded. Per IP: 1500 requests / 15 min on `/api`, 20 login/register attempts / 15 min, 120 availability checks / 15 min. Per account: 10 failed logins / 15 min (successful ones don't count). Per user: 60 posts/messages/listings/reports / 10 min, 20 uploads / 15 min, 10 password changes / 15 min, 30 admin AI actions / 15 min. AI recommendations: 10 / 15 min and 60 / day per user, 600 / hour for everyone together. |
 | Users | Wherever a user appears next to content (`author`, `seller`, `buyer`, `reporter`, `targetAuthor`) it is `{ id, username, avatarUrl }`; `avatarUrl` is `null` without a picture. |
 | Errors | `{ "error": "<message>", "details"?: [...] }` with a meaningful status: 400 invalid input, 401 not logged in / bad credentials, 403 not allowed, 404 not found, 409 conflict, 413 too large, 502 AI provider error, 503 AI features not configured (no `DEEPINFRA_API_KEY`) or no book embeddings yet. |
 | Pagination | `?page=1&limit=10` → `{ items, page, limit, total, totalPages }` |
 | Genres | Stored and sent as codes (`fiction`, `children_teens`, …). Responses carry `{ code, label }` with the Romanian label. Full list: `GET /api/genres`. |
 | Images | Responses contain ready-to-use URLs (`avatarUrl`, `imageUrl`, `coverUrl`, `mediaUrl`) relative to the server origin. Avatars and listing images are public static files. Chat media needs the bearer token. |
-| Empty success | `204 No Content` for deletes and password changes. |
+| Empty success | `204 No Content` for deletes. |
 
 ## Endpoints
 
@@ -35,12 +35,15 @@ login + register, 300 for availability checks (safe to call while the user types
 |---|---|---|
 | GET | `/me` | `{ id, email, username, description, avatarUrl, isAdmin, permissions: { canCreateListings, canCreateForums, canSendMessages, canReport }, createdAt }` |
 | PATCH | `/me` | `{ description }` |
-| PUT | `/me/password` | `{ currentPassword, newPassword }` → 204 |
+| PUT | `/me/password` | `{ currentPassword, newPassword }` → `{ token }`: every other session is signed out, this one continues with the new token. A wrong current password is 403. |
+| POST | `/me/sessions/revoke` | signs out every other device → `{ token }` for this one |
 | PUT | `/me/avatar` | multipart, field `image` (jpg/png ≤ 5 MB) |
 | GET / PUT | `/me/favorite-genres` | PUT `{ genres: ["fiction", …] }` (0–5 distinct codes) → `{ genres: [{ code, label }] }` |
 | GET | `/me/reading-history` | `[{ id, rating, book: { id, title, author, coverUrl } }]` |
-| GET | `/me/recommendations` | book summaries |
-| POST | `/me/recommendations` | `{ query?, sentiment? }` (sentiment ∈ `anger`, `disgust`, `fear`, `joy`, `sadness`, `surprise`, `neutral`, optional). Regenerates recommendations: the books closest in meaning to `query`, or, without it, to the reader's taste (average embedding of the books they rated ≥ 4; favourite genres for new readers). Candidates are re-ranked by the emotion score and preferred genres, already-read books are skipped. Returns the new book summaries. 503 until embeddings exist. |
+| GET | `/me/recommendations` | `{ items: [{ book, score (0–1), reason: liked\|genre\|query\|null, reasonBook: { id, title } \| null }], run: { source, query, sentiment, basedOn, seedCount, personalized, createdAt } \| null, dismissedCount }` |
+| POST | `/me/recommendations` | `{ query?, sentiment?, personalized? }` (sentiment ∈ `anger`, `disgust`, `fear`, `joy`, `sadness`, `surprise`, `neutral`). Without `query`: candidates near the reader's taste (weighted average of books rated ≥ 4) **and** near each favourite book separately, scored half on each; favourite genres for readers without ratings. With `query`: near the embedded request, blended with the reader's taste when `personalized`. Then books resembling disliked (≤ 2) or dismissed ones are pushed down, read/dismissed books and their other editions are skipped, the list is re-ranked by emotion and preferred genres and diversified (MMR, max 2 per author). Returns the same payload as GET. 503 until embeddings and an AI key exist. |
+| DELETE | `/me/recommendations/:bookId` | "not interested": removed now and never recommended again → 204 |
+| DELETE | `/me/recommendation-dismissals` | forgets every "not interested" → `{ cleared }` |
 | GET | `/me/listings` · `/me/forums` · `/me/chats` | own listings / forums (paginated) / conversations |
 | GET | `/me/favorite-listings` | saved listings, most recently saved first (paginated) |
 
@@ -63,6 +66,7 @@ login + register, 300 for availability checks (safe to call while the user types
 | GET | `/books/:bookId/offers` | `[{ id, store, url, price }]` cheapest first |
 | GET | `/books/:bookId/listings` | marketplace listings for this book |
 | GET | `/books/:bookId/external-info` | `{ publisher, year, pageCount, language, offer? }` from Google Books, looked up server-side by ISBN, or `null` |
+| GET | `/books/:bookId/similar` | `?limit=` (1–24, default 8): book summaries closest in meaning, from stored embeddings (no AI call; other editions left out, max 2 per author); `[]` without embeddings |
 | GET / PUT / DELETE 🔒 | `/books/:bookId/rating` | `{ isRead, rating }` · PUT `{ rating: 0-5 }` marks as read · DELETE unmarks |
 
 ### Marketplace listings
@@ -140,7 +144,7 @@ Job statuses: `running`, `completed`, `failed`, `cancelled`, `interrupted` (the 
 ### Other
 `GET /statistics/listings`, `GET /statistics/books` (includes the 10 most prolific authors),
 `GET /statistics/authors?search=&limit=` (per-author price/genre stats, max 25) — all public, cached 5 min ·
-`GET /genres` · `GET /features` (`{ recommendations }`: whether the client should offer AI recommendations) · `GET /health`
+`GET /genres` · `GET /features` (`{ recommendations, similarBooks }`: AI recommendations need embeddings and a key, similar books only embeddings) · `GET /health`
 
 ---
 

@@ -14,6 +14,7 @@ router.use(authenticate);
 router.get('/', controller.getAccount);
 router.patch('/', controller.updateAccount);
 router.put('/password', passwordChangeRateLimiter, controller.changePassword);
+router.post('/sessions/revoke', passwordChangeRateLimiter, controller.signOutEverywhere);
 router.put('/avatar', uploadRateLimiter, uploadImage('image'), controller.uploadAvatar);
 
 router.get('/favorite-genres', controller.getFavoriteGenres);
@@ -23,6 +24,8 @@ router.get('/reading-history', controller.getReadingHistory);
 router.get('/recommendations', controller.getRecommendations);
 // Each request may call the paid AI provider: per-user and global budgets apply.
 router.post('/recommendations', aiUserRateLimiters, aiGlobalRateLimiter, controller.generateRecommendations);
+router.delete('/recommendations/:bookId', controller.dismissRecommendation);
+router.delete('/recommendation-dismissals', controller.clearDismissals);
 
 router.get('/listings', controller.getListings);
 router.get('/favorite-listings', controller.getFavoriteListings);

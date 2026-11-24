@@ -1,7 +1,7 @@
 import clsx from 'clsx';
 import {
     BookMarked, ChevronDown, LayoutDashboard, LogOut, Menu as MenuIcon, MessagesSquare, Moon, ShieldAlert,
-    Settings2, Store, Sun, User, X,
+    Settings2, Sparkles, Store, Sun, User, X,
 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router';
@@ -28,6 +28,7 @@ function UserMenu() {
 
     const items = [
         { label: 'Profilul meu', icon: <User />, to: paths.profile },
+        { label: 'Recomandări pentru mine', icon: <Sparkles />, to: `${paths.catalog}?tab=ai` },
         { label: 'Istoricul de lectură', icon: <BookMarked />, to: paths.readingHistory },
         { label: 'Anunțurile mele', icon: <Store />, to: paths.myListings },
         { label: 'Conversațiile mele', icon: <MessagesSquare />, to: paths.chats },

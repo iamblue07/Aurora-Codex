@@ -1,21 +1,29 @@
 /**
- * Book recommendations, computed inside the API (formerly a separate Python service).
+ * Book recommendations, computed inside the API.
  *
- * 1. Candidates: the books semantically closest to a vector, found in the in-memory index of the
- *    book embeddings stored in MySQL. The vector is either the embedded search query, or the
- *    reader's "taste": the weighted average of the books they rated highly.
- * 2. Re-ranking: similarity blended with the requested emotion score and a small bonus for the
- *    reader's preferred genres (weights are admin settings).
- * 3. The result replaces the user's stored recommendations.
+ * 1. Candidates: the books semantically closest to the reader, found in the in-memory index of the
+ *    book embeddings stored in MySQL. A profile run searches around the reader's overall taste (the
+ *    weighted average of the books they liked) and around each of their favourite books separately,
+ *    so a reader of both sci-fi and romance gets both instead of a blurred middle. A query run
+ *    searches around the embedded request, optionally blended with the reader's taste.
+ * 2. Feedback: books resembling ones the reader disliked (rated <= 2) or dismissed more than
+ *    anything they liked are pushed down; dismissed and (optionally) read books are excluded.
+ * 3. Re-ranking: similarity blended with the requested emotion and a small bonus for preferred
+ *    genres, then reordered for variety (MMR) with a cap per author.
+ * 4. Every result records why it was picked ("because you liked X", a genre, or the query); the
+ *    list and how it was generated replace the user's stored recommendations.
  */
 import { EMOTIONS, emotionAttribute, RECOMMENDATION_SOURCES } from '../constants/domain.js';
 import { genreLabel } from '../constants/genres.js';
-import { Book, BookEmbedding, ReadBook, Recommendation, sequelize } from '../models/index.js';
+import {
+    Book, ReadBook, Recommendation, RecommendationDismissal, RecommendationRun, sequelize,
+} from '../models/index.js';
 import HttpError from '../utils/http-error.js';
 import { buildQueryText } from './ai/book-text.js';
 import { embed, isAiConfigured } from './ai/deepinfra.client.js';
-import { searchSimilar } from './ai/vector-index.js';
-import { fromBuffer, shorten, weightedCentroid } from './ai/vector-math.js';
+import { getIndexStats, getVectors, searchSimilar } from './ai/vector-index.js';
+import { closestSeed, diversify, dot, normalize, shorten, weightedCentroid } from './ai/vector-math.js';
+import { getBookSummaries } from './book.service.js';
 import { getFavoriteGenres } from './favorite-genre.service.js';
 import { getSettings } from './settings.service.js';
 
@@ -136,6 +144,12 @@ export const rankCandidates = (candidates, booksById, {
 /** Weight of a liked book in the taste vector: a 5 counts more than the minimum liked rating. */
 export const tasteWeight = (rating, minTasteRating) => (rating >= minTasteRating ? rating - minTasteRating + 1 : 0);
 
+
+/** Ratings at or below this count as "disliked". */
+export const DISLIKE_MAX_RATING = 2;
+
+const RECOMMENDATION_REASONS = Object.freeze({ LIKED: 'liked', GENRE: 'genre', QUERY: 'query' });
+
 const ensureAvailable = () => {
     if (!isAiConfigured()) throw HttpError.serviceUnavailable('Recommendations are disabled: no AI provider key is configured');
 };
@@ -163,93 +177,337 @@ const embedQuery = async (text, settings) => {
     return vector;
 };
 
-/** Finds candidates near `vector`, re-ranks them and stores the top results for the user. */
-const recommendNear = async (userId, vector, { settings, readBookIds, sentiment, preferredGenres, source }) => {
-    const exclude = settings['recommendations.excludeRead'] ? readBookIds : new Set();
-    const candidates = await searchSimilar(embeddingSpace(settings), vector, {
-        limit: settings['recommendations.candidatePool'],
-        exclude,
-    });
-    if (candidates.length === 0) {
+/** Lower-cased author without diacritics, so "Mircea Eliade" and "MIRCEA ELIADE" group together. */
+const authorKey = (author) => (author
+    ? author.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase().replace(/\s+/g, ' ').trim() || null
+    : null);
+
+/** Normalised title: other editions of the same book count as one. */
+const titleKey = (title) => (title ?? '')
+    .normalize('NFD').replace(/\p{M}/gu, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+
+/**
+ * Pushes a candidate down when it resembles a disliked book more than what it was matched on.
+ * Pure function: `matched` is its similarity to the taste / seed / query, `vector` its embedding.
+ */
+export const dislikePenalty = (vector, matched, negatives, weight) => {
+    if (!vector || negatives.length === 0 || weight <= 0) return 0;
+    let closest = -1;
+    for (const negative of negatives) closest = Math.max(closest, dot(vector, negative));
+    return weight * Math.max(0, closest - matched);
+};
+
+/**
+ * Everything the recommender knows about a reader: their ratings, the vectors of the books they
+ * liked (seeds and overall taste), disliked or dismissed, and which books to leave out.
+ */
+const loadReader = async (userId, settings) => {
+    const [readBooks, dismissals, favoriteGenres] = await Promise.all([
+        ReadBook.findAll({
+            where: { userId },
+            attributes: ['id', 'rating', 'bookId'],
+            include: [{ model: Book, as: 'book', attributes: ['title', 'genre', ...EMOTIONS.map(emotionAttribute)] }],
+        }),
+        RecommendationDismissal.findAll({
+            where: { userId },
+            attributes: ['bookId'],
+            include: [{ model: Book, as: 'book', attributes: ['title'] }],
+        }),
+        getFavoriteGenres(userId),
+    ]);
+    const minTasteRating = settings['recommendations.minTasteRating'];
+    const liked = readBooks
+        .filter((entry) => entry.rating >= minTasteRating)
+        .sort((a, b) => b.rating - a.rating || b.id - a.id); // best rated, then most recently rated
+    const dislikedIds = readBooks.filter((entry) => entry.rating <= DISLIKE_MAX_RATING).map((entry) => entry.bookId);
+    const dismissedIds = dismissals.map((row) => row.bookId);
+
+    const vectors = await getVectors(
+        embeddingSpace(settings),
+        [...liked.map((entry) => entry.bookId), ...dislikedIds, ...dismissedIds],
+    );
+    const likedWithVectors = liked.filter((entry) => vectors.has(entry.bookId));
+    const taste = weightedCentroid(likedWithVectors.map((entry) => ({
+        vector: vectors.get(entry.bookId),
+        weight: tasteWeight(entry.rating, minTasteRating),
+    })));
+    const seeds = likedWithVectors
+        .slice(0, settings['recommendations.maxSeeds'])
+        .map((entry) => ({ id: entry.bookId, vector: vectors.get(entry.bookId) }));
+    const negatives = [...dislikedIds, ...dismissedIds].map((id) => vectors.get(id)).filter(Boolean);
+
+    const exclude = new Set(dismissedIds);
+    // Titles left out too: the catalogue lists the same book once per edition / store.
+    const excludedTitles = new Set(dismissals.map((row) => titleKey(row.book?.title)));
+    if (settings['recommendations.excludeRead']) {
+        for (const entry of readBooks) {
+            exclude.add(entry.bookId);
+            excludedTitles.add(titleKey(entry.book?.title));
+        }
+    }
+    excludedTitles.delete('');
+
+    const likedCount = likedWithVectors.length;
+    return { readBooks, favoriteGenres, taste, seeds, negatives, exclude, excludedTitles, likedCount };
+};
+
+/** Searches around every query vector and keeps each book's best similarity. */
+const gatherCandidates = async (space, queries, exclude) => {
+    const results = await Promise.all(
+        queries.map(({ vector, limit }) => searchSimilar(space, vector, { limit, exclude })),
+    );
+    const best = new Map();
+    for (const list of results) {
+        for (const { bookId, similarity } of list) {
+            if (!best.has(bookId) || best.get(bookId) < similarity) best.set(bookId, similarity);
+        }
+    }
+    return best;
+};
+
+/**
+ * Shared tail of both modes: penalise disliked look-alikes, rank by emotion/genre, diversify,
+ * then store the list and the run.
+ *
+ * @param {Map<number, { similarity: number, seed?: object|null }>} scored candidates
+ */
+const finish = async (userId, scored, vectors, { settings, reader, sentiment, preferredGenres, run, reasonFor }) => {
+    if (scored.size === 0) {
         throw HttpError.serviceUnavailable('No book embeddings yet: an administrator must generate them first');
     }
-
+    const ids = [...scored.keys()];
     const books = await Book.findAll({
-        where: { id: candidates.map((candidate) => candidate.bookId) },
-        attributes: ['id', 'genre', ...EMOTIONS.map(emotionAttribute)],
+        where: { id: ids },
+        attributes: ['id', 'title', 'author', 'genre', ...EMOTIONS.map(emotionAttribute)],
         raw: true,
     });
-    const ranked = rankCandidates(candidates, new Map(books.map((book) => [book.id, book])), {
+    const booksById = new Map(books.map((book) => [book.id, book]));
+    const weight = settings['recommendations.dislikeWeight'];
+    const seenTitles = new Set(reader.excludedTitles);
+    const candidates = ids.map((bookId) => {
+        const { similarity } = scored.get(bookId);
+        const penalty = dislikePenalty(vectors.get(bookId), similarity, reader.negatives, weight);
+        return { bookId, similarity: similarity - penalty };
+    });
+
+    const ranked = rankCandidates(candidates, booksById, {
         sentiment,
         emotionWeight: settings['recommendations.emotionWeight'],
         preferredGenres,
         genreBoost: settings['recommendations.genreBoost'],
-    }).slice(0, settings['recommendations.resultCount']);
+    });
+    const top = ranked[0]?.score || 1;
+    // One edition per title (the best ranked); the catalogue lists the same book from several stores.
+    const uniqueRanked = ranked.filter(({ bookId }) => {
+        const title = titleKey(booksById.get(bookId)?.title);
+        if (seenTitles.has(title)) return false;
+        seenTitles.add(title);
+        return true;
+    });
+    const picked = diversify(
+        uniqueRanked.map(({ bookId, score }) => ({
+            id: bookId,
+            score: score / top,
+            group: authorKey(booksById.get(bookId)?.author),
+        })),
+        vectors,
+        {
+            limit: settings['recommendations.resultCount'],
+            diversity: settings['recommendations.diversity'],
+            perGroup: settings['recommendations.maxPerAuthor'],
+        },
+    );
 
+    const rows = picked.map(({ id, score }) => {
+        const { reason, reasonBookId = null } = reasonFor(id, booksById.get(id), scored.get(id));
+        return { userId, bookId: id, score: Math.max(0, Math.min(1, score)), source: run.source, reason, reasonBookId };
+    });
     await sequelize.transaction(async (transaction) => {
         await Recommendation.destroy({ where: { userId }, transaction });
-        await Recommendation.bulkCreate(
-            ranked.map(({ bookId, score }) => ({ userId, bookId, score, source })),
-            { transaction },
-        );
+        await Recommendation.bulkCreate(rows, { transaction });
+        await RecommendationRun.destroy({ where: { userId }, transaction });
+        await RecommendationRun.create({ userId, ...run }, { transaction });
     });
-    return ranked;
+    return rows;
 };
 
-const readBooksOf = (userId) => ReadBook.findAll({
-    where: { userId },
-    attributes: ['rating', 'bookId'],
-    include: [{ model: Book, as: 'book', attributes: ['genre', ...EMOTIONS.map(emotionAttribute)] }],
-});
-
-/** Recommendations for free-text keywords, optionally favouring an emotional tone. */
-export const recommendFromQuery = async (userId, { query, sentiment = null }) => {
+/** Recommendations for free-text keywords, optionally favouring a tone and the reader's taste. */
+export const recommendFromQuery = async (userId, { query, sentiment = null, personalized = false }) => {
     ensureAvailable();
     const settings = await getSettings();
-    const [vector, readBooks] = await Promise.all([embedQuery(query, settings), readBooksOf(userId)]);
-    return recommendNear(userId, vector, {
+    const space = embeddingSpace(settings);
+    const [queryVector, reader] = await Promise.all([embedQuery(query, settings), loadReader(userId, settings)]);
+
+    const share = personalized && reader.taste ? settings['recommendations.personalization'] : 0;
+    const vector = share > 0
+        ? normalize(queryVector.map((value, i) => (1 - share) * value + share * reader.taste[i]))
+        : queryVector;
+    const pool = settings['recommendations.candidatePool'];
+    const similarities = await gatherCandidates(space, [{ vector, limit: pool }], reader.exclude);
+    const vectors = await getVectors(space, [...similarities.keys()]);
+    const scored = new Map([...similarities].map(([bookId, similarity]) => [bookId, { similarity }]));
+
+    return finish(userId, scored, vectors, {
         settings,
-        readBookIds: new Set(readBooks.map((entry) => entry.bookId)),
+        reader,
         sentiment,
         preferredGenres: [],
-        source: RECOMMENDATION_SOURCES.QUERY,
+        run: {
+            source: RECOMMENDATION_SOURCES.QUERY,
+            query,
+            sentiment,
+            personalized: share > 0,
+            seedCount: share > 0 ? reader.likedCount : 0,
+        },
+        reasonFor: () => ({ reason: RECOMMENDATION_REASONS.QUERY }),
     });
 };
 
 /**
- * Recommendations from the reader's profile: the average embedding of the books they rated
- * highly (or, for new readers, a query built from their favourite genres), ranked towards the
- * emotion that dominates their favourite books.
+ * Recommendations from the reader's profile. With liked books: candidates near the overall taste
+ * and near each favourite book; each is scored half on the taste, half on its closest favourite
+ * (which becomes the "because you liked" reason). Without: a query built from favourite genres.
  */
 export const recommendFromProfile = async (userId) => {
     ensureAvailable();
     const settings = await getSettings();
-    const [favoriteGenres, readBooks] = await Promise.all([getFavoriteGenres(userId), readBooksOf(userId)]);
-    const profile = buildReadingProfile(favoriteGenres, readBooks);
-
-    const minTasteRating = settings['recommendations.minTasteRating'];
-    const liked = readBooks.filter((entry) => entry.rating >= minTasteRating);
     const space = embeddingSpace(settings);
-    const embeddings = liked.length
-        ? await BookEmbedding.findAll({
-            where: { bookId: liked.map((entry) => entry.bookId), ...space },
-            attributes: ['bookId', 'embedding'],
-            raw: true,
-        })
-        : [];
-    const ratingByBook = new Map(liked.map((entry) => [entry.bookId, entry.rating]));
-    const taste = weightedCentroid(embeddings.map((row) => ({
-        vector: fromBuffer(row.embedding),
-        weight: tasteWeight(ratingByBook.get(row.bookId), minTasteRating),
-    })));
+    const reader = await loadReader(userId, settings);
+    const profile = buildReadingProfile(reader.favoriteGenres, reader.readBooks);
+    const pool = settings['recommendations.candidatePool'];
 
-    const vector = taste ?? await embedQuery(profile.query, settings);
-    await recommendNear(userId, vector, {
+    const usesRatings = Boolean(reader.taste);
+    const tasteVector = reader.taste ?? await embedQuery(profile.query, settings);
+    const queries = [{ vector: tasteVector, limit: pool }];
+    if (usesRatings && reader.seeds.length > 1) {
+        const perSeed = Math.max(10, Math.ceil(pool / 2));
+        for (const seed of reader.seeds) queries.push({ vector: seed.vector, limit: perSeed });
+    }
+    const similarities = await gatherCandidates(space, queries, reader.exclude);
+    const vectors = await getVectors(space, [...similarities.keys()]);
+
+    const scored = new Map();
+    for (const [bookId, best] of similarities) {
+        const vector = vectors.get(bookId);
+        const seed = usesRatings && vector ? closestSeed(vector, reader.seeds) : null;
+        const tasteSimilarity = vector ? dot(vector, tasteVector) : best;
+        scored.set(bookId, { similarity: seed ? (tasteSimilarity + seed.similarity) / 2 : tasteSimilarity, seed });
+    }
+
+    const topGenres = new Set(profile.topGenres);
+    await finish(userId, scored, vectors, {
         settings,
-        readBookIds: new Set(readBooks.map((entry) => entry.bookId)),
+        reader,
         sentiment: profile.sentiment,
         preferredGenres: profile.topGenres,
-        source: RECOMMENDATION_SOURCES.PROFILE,
+        run: {
+            source: RECOMMENDATION_SOURCES.PROFILE,
+            sentiment: profile.sentiment,
+            basedOn: usesRatings ? 'ratings' : 'genres',
+            seedCount: reader.likedCount,
+        },
+        reasonFor: (_bookId, book, { seed }) => {
+            if (seed) return { reason: RECOMMENDATION_REASONS.LIKED, reasonBookId: seed.id };
+            return { reason: topGenres.has(book?.genre) ? RECOMMENDATION_REASONS.GENRE : null };
+        },
     });
-    return { ...profile, basedOn: taste ? 'ratings' : 'genres', likedBooks: embeddings.length };
+    return { ...profile, basedOn: usesRatings ? 'ratings' : 'genres', likedBooks: reader.likedCount };
+};
+
+// --- Reading the stored recommendations and feedback ------------------------------------------
+
+/**
+ * The user's current recommendations, best first: book cards with the reason for each, plus how
+ * the list was generated (`run`, null when there is none).
+ */
+export const getCurrentRecommendations = async (userId) => {
+    const [rows, run] = await Promise.all([
+        Recommendation.findAll({
+            where: { userId },
+            attributes: ['bookId', 'score', 'reason'],
+            include: [{ model: Book, as: 'reasonBook', attributes: ['id', 'title'] }],
+            order: [['id', 'ASC']],
+        }),
+        RecommendationRun.findByPk(userId),
+    ]);
+    const books = await getBookSummaries(rows.map((row) => row.bookId));
+    const booksById = new Map(books.map((book) => [book.id, book]));
+    const items = rows
+        .filter((row) => booksById.has(row.bookId))
+        .map((row) => ({
+            book: booksById.get(row.bookId),
+            score: row.score,
+            reason: row.reason,
+            reasonBook: row.reasonBook,
+        }));
+    return { items, run };
+};
+
+/** "Not interested": removes the book from the list and keeps it out of future recommendations. */
+export const dismissBook = async (userId, bookId) => {
+    if (!await Book.count({ where: { id: bookId } })) throw HttpError.notFound('Book not found');
+    await RecommendationDismissal.findOrCreate({ where: { userId, bookId } });
+    await Recommendation.destroy({ where: { userId, bookId } });
+};
+
+/** Forgets every "not interested" of the user; returns how many there were. */
+export const clearDismissals = (userId) => RecommendationDismissal.destroy({ where: { userId } });
+
+export const countDismissals = (userId) => RecommendationDismissal.count({ where: { userId } });
+
+// --- Similar books ------------------------------------------------------------------------------
+
+const SIMILAR_CACHE_MS = 10 * 60 * 1000;
+const SIMILAR_CACHE_SIZE = 500;
+const similarCache = new Map();
+
+
+/**
+ * Books closest in meaning to `bookId`, from its stored embedding: no AI provider call, so it
+ * works (and costs nothing) even without an API key. Other editions are left out and authors
+ * capped for variety. Returns book ids, best first ([] when the book has no embedding).
+ */
+export const getSimilarBookIds = async (bookId, limit = 8) => {
+    const settings = await getSettings();
+    const space = embeddingSpace(settings);
+    // The index load time is part of the key: rebuilt embeddings never serve stale neighbours.
+    const key = `${space.model}|${space.dimensions}|${getIndexStats().loadedAt ?? ''}|${bookId}|${limit}`;
+    const cached = similarCache.get(key);
+    if (cached && cached.expiresAt > Date.now()) return cached.ids;
+
+    const source = await Book.findByPk(bookId, { attributes: ['id', 'title'] });
+    if (!source) throw HttpError.notFound('Book not found');
+    const vector = (await getVectors(space, [bookId])).get(bookId);
+    let ids = [];
+    if (vector) {
+        const candidates = await searchSimilar(space, vector, { limit: limit * 4, exclude: new Set([bookId]) });
+        const books = await Book.findAll({
+            where: { id: candidates.map((candidate) => candidate.bookId) },
+            attributes: ['id', 'title', 'author'],
+            raw: true,
+        });
+        const booksById = new Map(books.map((book) => [book.id, book]));
+        const seenTitles = new Set([titleKey(source.title)]);
+        const unique = candidates.filter((candidate) => {
+            const title = titleKey(booksById.get(candidate.bookId)?.title);
+            if (!title || seenTitles.has(title)) return false;
+            seenTitles.add(title);
+            return true;
+        });
+        const vectors = await getVectors(space, unique.map((candidate) => candidate.bookId));
+        const best = unique[0]?.similarity || 1;
+        ids = diversify(
+            unique.map((candidate) => ({
+                id: candidate.bookId,
+                score: candidate.similarity / best,
+                group: authorKey(booksById.get(candidate.bookId)?.author),
+            })),
+            vectors,
+            { limit, diversity: 0.15, perGroup: 2 },
+        ).map((item) => item.id);
+    }
+
+    similarCache.set(key, { ids, expiresAt: Date.now() + SIMILAR_CACHE_MS });
+    if (similarCache.size > SIMILAR_CACHE_SIZE) similarCache.delete(similarCache.keys().next().value);
+    return ids;
 };

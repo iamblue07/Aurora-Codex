@@ -39,7 +39,8 @@ const createUploader = ({ folder, allowedTypes, maxSizeMb, maxFiles = 1, errorMe
         destination: path.join(UPLOADS_ROOT, folder),
         filename: uniqueFilename,
     }),
-    limits: { fileSize: maxSizeMb * MB, files: maxFiles },
+    // Text fields are small (titles, descriptions): cap them so a form can't carry megabytes of text.
+    limits: { fileSize: maxSizeMb * MB, files: maxFiles, fields: 40, fieldSize: 64 * 1024, parts: maxFiles + 40 },
     fileFilter: fileFilterFor(allowedTypes, errorMessage),
 });
 

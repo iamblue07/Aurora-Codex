@@ -64,9 +64,22 @@ export const removeStoredFile = async (storedPath) => {
     }
 };
 
+/**
+ * Private attachments (chat media) are served sandboxed and, unless they are images, as downloads:
+ * a crafted PDF or HTML-like file can never run as a page on the API's origin.
+ */
+const protectPrivateFile = (res, storedPath) => {
+    if (storedPath.startsWith(`${UPLOAD_FOLDERS.images}/`)) return;
+    res.set('Content-Security-Policy', "default-src 'none'; sandbox");
+    if (!contentTypeOf(storedPath).startsWith('image/')) {
+        res.set('Content-Disposition', `attachment; filename="${path.basename(storedPath)}"`);
+    }
+};
+
 /** Sends a stored file, or throws 404 if it is missing. */
 export const sendStoredFile = async (res, storedPath, notFoundMessage = 'File not found') => {
     if (!storedPath) throw HttpError.notFound(notFoundMessage);
+    protectPrivateFile(res, storedPath);
     if (isRemote()) {
         const object = await getObject(storedPath);
         if (!object?.body) throw HttpError.notFound(notFoundMessage);

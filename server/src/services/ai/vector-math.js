@@ -117,3 +117,66 @@ export const scanTopK = ({ ids, matrix, scales, dimensions, count }, query, { li
     }
     return top.toArray().map(({ item, score }) => ({ bookId: item, similarity: score }));
 };
+
+/** Row `row` of a quantised index as a unit float vector. */
+export const dequantizeRow = ({ matrix, scales, dimensions }, row) => {
+    const vector = new Float32Array(dimensions);
+    const offset = row * dimensions;
+    for (let i = 0; i < dimensions; i += 1) vector[i] = matrix[offset + i] * scales[row];
+    return normalize(vector);
+};
+
+/**
+ * The seed most similar to `vector`, with that similarity: which liked book "explains" a candidate.
+ * @param {Float32Array} vector
+ * @param {{ id: number, vector: Float32Array }[]} seeds
+ * @returns {{ id: number, similarity: number } | null}
+ */
+export const closestSeed = (vector, seeds) => {
+    let best = null;
+    for (const seed of seeds) {
+        const similarity = dot(vector, seed.vector);
+        if (!best || similarity > best.similarity) best = { id: seed.id, similarity };
+    }
+    return best;
+};
+
+/**
+ * Re-orders ranked items for variety (Maximal Marginal Relevance): each pick maximises
+ * `(1 - diversity) * score - diversity * (similarity to the closest item already picked)`,
+ * and no more than `perGroup` items share a group (e.g. an author). Pure function.
+ *
+ * @param {{ id: number, score: number, group?: string|null }[]} ranked best first, scores ~0–1
+ * @param {Map<number, Float32Array>} vectors unit vectors by id (items without one count as unique)
+ * @param {{ limit: number, diversity?: number, perGroup?: number }} options
+ */
+export const diversify = (ranked, vectors, { limit, diversity = 0, perGroup = Infinity }) => {
+    const picked = [];
+    const pickedVectors = [];
+    const groupCounts = new Map();
+    const pool = [...ranked];
+    while (picked.length < limit && pool.length > 0) {
+        let bestIndex = -1;
+        let bestValue = -Infinity;
+        for (let i = 0; i < pool.length; i += 1) {
+            const item = pool[i];
+            if (item.group && (groupCounts.get(item.group) ?? 0) >= perGroup) continue;
+            const vector = vectors.get(item.id);
+            let redundancy = 0;
+            if (vector && diversity > 0) {
+                for (const other of pickedVectors) redundancy = Math.max(redundancy, dot(vector, other));
+            }
+            const value = (1 - diversity) * item.score - diversity * redundancy;
+            if (value > bestValue) {
+                bestValue = value;
+                bestIndex = i;
+            }
+        }
+        if (bestIndex === -1) break; // only over-represented groups remain
+        const [item] = pool.splice(bestIndex, 1);
+        picked.push(item);
+        if (vectors.get(item.id)) pickedVectors.push(vectors.get(item.id));
+        if (item.group) groupCounts.set(item.group, (groupCounts.get(item.group) ?? 0) + 1);
+    }
+    return picked;
+};

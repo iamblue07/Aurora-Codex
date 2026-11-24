@@ -14,5 +14,5 @@ export default function useFeatures() {
         queryFn: () => http.get('/api/features', { auth: false }),
         staleTime: FIVE_MINUTES,
     });
-    return { ...query, features: query.data ?? { recommendations: false } };
+    return { ...query, features: query.data ?? { recommendations: false, similarBooks: false } };
 }

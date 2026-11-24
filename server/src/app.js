@@ -27,8 +27,16 @@ export const createApp = () => {
     // Behind Render/Vercel-style proxies, so rate limiting sees the real client IP.
     app.set('trust proxy', 1);
 
-    // Images are loaded cross-origin by the React app, so allow cross-origin resource reads.
-    app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
+    // A JSON API never serves pages: the strictest CSP, no framing. Images are loaded cross-origin
+    // by the React app, so cross-origin resource reads stay allowed.
+    app.use(helmet({
+        crossOriginResourcePolicy: { policy: 'cross-origin' },
+        contentSecurityPolicy: {
+            useDefaults: false,
+            directives: { defaultSrc: ["'none'"], baseUri: ["'none'"], formAction: ["'none'"], frameAncestors: ["'none'"] },
+        },
+        referrerPolicy: { policy: 'no-referrer' },
+    }));
     app.use(cors(corsOptions));
     // gzip JSON responses (statistics are ~90 KB raw); images are already compressed and skipped.
     app.use(compression());

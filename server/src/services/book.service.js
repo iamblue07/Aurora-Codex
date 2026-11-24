@@ -1,5 +1,5 @@
 import { Op, QueryTypes, Sequelize } from 'sequelize';
-import { Book, BookOffer, ReadBook, Recommendation, sequelize } from '../models/index.js';
+import { Book, BookOffer, ReadBook, sequelize } from '../models/index.js';
 import { orderByIds } from '../utils/collections.js';
 import HttpError from '../utils/http-error.js';
 import { toLikePattern } from '../utils/validation.js';
@@ -151,11 +151,3 @@ export const getReadingHistory = (userId) => ReadBook.findAll({
     order: [['id', 'DESC']],
 });
 
-export const getRecommendedBooks = async (userId) => {
-    const recommendations = await Recommendation.findAll({
-        where: { userId },
-        attributes: ['bookId'],
-        order: [['id', 'ASC']],
-    });
-    return getBookSummaries(recommendations.map((recommendation) => recommendation.bookId));
-};

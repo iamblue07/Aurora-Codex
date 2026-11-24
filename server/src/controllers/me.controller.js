@@ -2,7 +2,8 @@ import { toStoredPath, UPLOAD_FOLDERS } from '../config/paths.js';
 import { EMOTIONS } from '../constants/domain.js';
 import {
     serializeAccount,
-    serializeBookSummary,
+    serializeRecommendation,
+    serializeRecommendationRun,
     serializeChat,
     serializeForum,
     serializeListingSummary,
@@ -19,12 +20,22 @@ import { wrapController } from '../utils/async-handler.js';
 import { paginated } from '../utils/collections.js';
 import { genreLabel } from '../constants/genres.js';
 import HttpError from '../utils/http-error.js';
-import { optionalString, parseOptionalEnum, parsePagination } from '../utils/validation.js';
+import {
+    optionalString, parseId, parseOptionalBoolean, parseOptionalEnum, parsePagination,
+} from '../utils/validation.js';
 import { parseExistingPassword, parseNewPassword } from '../validators/account.validators.js';
 
 const genreRefs = (codes) => codes.map((code) => ({ code, label: genreLabel(code) }));
 
 /** Endpoints about the authenticated user ("me"). `req.user.id` is set by `authenticate`. */
+const recommendationsPayload = async (userId) => {
+    const [{ items, run }, dismissedCount] = await Promise.all([
+        recommendationService.getCurrentRecommendations(userId),
+        recommendationService.countDismissals(userId),
+    ]);
+    return { items: items.map(serializeRecommendation), run: serializeRecommendationRun(run), dismissedCount };
+};
+
 export default wrapController({
     async getAccount(req, res) {
         res.json(serializeAccount(await userService.findUserOrThrow(req.user.id)));
@@ -36,11 +47,16 @@ export default wrapController({
     },
 
     async changePassword(req, res) {
-        await userService.changePassword(req.user.id, {
+        const token = await userService.changePassword(req.user.id, {
             currentPassword: parseExistingPassword(req.body?.currentPassword, 'currentPassword'),
             newPassword: parseNewPassword(req.body?.newPassword),
         });
-        res.status(204).end();
+        res.json({ token });
+    },
+
+    /** POST /api/me/sessions/revoke — signs out every other device; returns a token for this one. */
+    async signOutEverywhere(req, res) {
+        res.json({ token: await userService.signOutEverywhere(req.user.id) });
     },
 
     async uploadAvatar(req, res) {
@@ -63,8 +79,9 @@ export default wrapController({
         res.json((await bookService.getReadingHistory(req.user.id)).map(serializeReadBook));
     },
 
+    /** GET /api/me/recommendations — `{ items: [{ book, score, reason, reasonBook }], run, dismissedCount }`. */
     async getRecommendations(req, res) {
-        res.json((await bookService.getRecommendedBooks(req.user.id)).map(serializeBookSummary));
+        res.json(await recommendationsPayload(req.user.id));
     },
 
     /**
@@ -76,12 +93,25 @@ export default wrapController({
         const query = optionalString(req.body?.query, 'query', { maxLength: 500 });
 
         if (query) {
+            if (query.length < 3) throw HttpError.badRequest('query must be at least 3 characters');
             const sentiment = parseOptionalEnum(req.body?.sentiment, 'sentiment', EMOTIONS, null);
-            await recommendationService.recommendFromQuery(req.user.id, { query, sentiment });
+            const personalized = parseOptionalBoolean(req.body?.personalized, 'personalized', false);
+            await recommendationService.recommendFromQuery(req.user.id, { query, sentiment, personalized });
         } else {
             await recommendationService.recommendFromProfile(req.user.id);
         }
-        res.json((await bookService.getRecommendedBooks(req.user.id)).map(serializeBookSummary));
+        res.json(await recommendationsPayload(req.user.id));
+    },
+
+    /** DELETE /api/me/recommendations/:bookId — "not interested": never recommend this book again. */
+    async dismissRecommendation(req, res) {
+        await recommendationService.dismissBook(req.user.id, parseId(req.params.bookId, 'bookId'));
+        res.status(204).end();
+    },
+
+    /** DELETE /api/me/recommendation-dismissals — forget every "not interested". */
+    async clearDismissals(req, res) {
+        res.json({ cleared: await recommendationService.clearDismissals(req.user.id) });
     },
 
     async getListings(req, res) {

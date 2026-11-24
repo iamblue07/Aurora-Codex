@@ -1,7 +1,7 @@
-import { KeyRound } from 'lucide-react';
+import { KeyRound, LogOut } from 'lucide-react';
 import { useState } from 'react';
-import { Button, Card, Input } from '@/shared/ui';
-import { useChangePassword } from '../hooks';
+import { Button, Card, ConfirmDialog, Input } from '@/shared/ui';
+import { useChangePassword, useSignOutEverywhere } from '../hooks';
 import styles from './ProfileCards.module.css';
 
 const MIN_LENGTH = 8;
@@ -11,6 +11,8 @@ export default function PasswordCard() {
     const [values, setValues] = useState(EMPTY);
     const [errors, setErrors] = useState({});
     const change = useChangePassword();
+    const signOutEverywhere = useSignOutEverywhere();
+    const [confirming, setConfirming] = useState(false);
 
     const update = (field) => (event) => {
         setValues((current) => ({ ...current, [field]: event.target.value }));
@@ -51,6 +53,20 @@ export default function PasswordCard() {
                     <Button type="submit" variant="neutral" loading={change.isPending}>Actualizează parola</Button>
                 </div>
             </form>
+            <div className={styles.sessions}>
+                <p className={styles.cardHint}>Ai uitat contul deschis pe alt calculator sau telefon?</p>
+                <Button variant="ghost" leftIcon={<LogOut />} onClick={() => setConfirming(true)}>Deconectează celelalte dispozitive</Button>
+            </div>
+            <ConfirmDialog
+                open={confirming}
+                title="Te deconectezi de pe celelalte dispozitive?"
+                description="Toate celelalte sesiuni se încheie imediat. Pe acest dispozitiv rămâi conectat."
+                confirmLabel="Deconectează-le"
+                tone="neutral"
+                loading={signOutEverywhere.isPending}
+                onConfirm={() => signOutEverywhere.mutate(undefined, { onSettled: () => setConfirming(false) })}
+                onCancel={() => setConfirming(false)}
+            />
         </Card>
     );
 }

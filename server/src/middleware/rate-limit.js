@@ -37,8 +37,28 @@ export const apiRateLimiter = createLimiter({ windowMs: 15 * MINUTE, limit: 1500
 /** Slows down brute-force attempts against login and registration. */
 export const credentialsRateLimiter = createLimiter({ windowMs: 15 * MINUTE, limit: 20 });
 
-/** Availability checks may run while the user types, so they get a looser budget. */
-export const availabilityRateLimiter = createLimiter({ windowMs: 15 * MINUTE, limit: 300 });
+/**
+ * Failed logins per account, whatever the IP: stops password guessing spread over many addresses.
+ * Successful logins don't count, so the owner is only slowed down after 10 wrong passwords.
+ */
+export const loginAccountRateLimiter = rateLimit({
+    windowMs: 15 * MINUTE,
+    limit: 10,
+    skipSuccessfulRequests: true,
+    keyGenerator: (req) => {
+        const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase().slice(0, 255) : '';
+        return `login:${email}`;
+    },
+    standardHeaders: 'draft-7',
+    legacyHeaders: false,
+    message: { error: 'Too many failed sign-in attempts for this account, please try again later' },
+});
+
+/** Availability checks may run while the user types (debounced), so they get a looser budget. */
+export const availabilityRateLimiter = createLimiter({ windowMs: 15 * MINUTE, limit: 120 });
+
+/** Token renewals per user (the client renews about once an hour while active). */
+export const sessionRefreshRateLimiter = createLimiter({ windowMs: 15 * MINUTE, limit: 60, keyGenerator: perUser });
 
 /** Guessing the current password with a stolen session must be slow too. */
 export const passwordChangeRateLimiter = createLimiter({ windowMs: 15 * MINUTE, limit: 10, keyGenerator: perUser });

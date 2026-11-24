@@ -110,6 +110,9 @@ describe('REST API', { skip }, () => {
     });
 
     after(async () => {
+        // The similar-books test loads the (empty) search index and its worker threads.
+        const { invalidateIndex } = await import('../../src/services/ai/vector-index.js');
+        invalidateIndex();
         await new Promise((resolve) => { server?.close(resolve); });
         await closeDatabase?.();
         const connection = await adminConnection();
@@ -174,6 +177,10 @@ describe('REST API', { skip }, () => {
             const login = (password) => api('POST', '/api/auth/login', { body: { email: 'Legacy@test', password } });
             assert.equal((await login(' old secret ')).status, 200);
             assert.equal((await login('old secret')).status, 401);
+            // The cheap legacy hash was upgraded to the current cost on that successful login.
+            const upgraded = await User.scope('withPassword').findOne({ where: { email: 'legacy@test' } });
+            assert.equal(bcrypt.getRounds(upgraded.passwordHash), 12);
+            assert.equal((await login(' old secret ')).status, 200);
             assert.equal((await api('POST', '/api/auth/login', { body: { email: '', password: 'x' } })).status, 400);
         });
 
@@ -194,21 +201,42 @@ describe('REST API', { skip }, () => {
             assert.equal((await api('GET', '/api/me')).status, 401);
             assert.equal((await api('GET', '/api/me', { token: 'garbage' })).status, 401);
         });
+
+        it("rejects the tokens of an account that no longer exists", async () => {
+            const ghost = await register('ghost');
+            assert.equal((await api('GET', '/api/me', { token: ghost.token })).status, 200);
+            await User.destroy({ where: { id: ghost.id } });
+            const { forgetSession } = await import('../../src/services/session.service.js');
+            forgetSession(ghost.id);
+            assert.equal((await api('GET', '/api/me', { token: ghost.token })).status, 401);
+            assert.equal((await api('POST', '/api/auth/refresh', { token: ghost.token })).status, 401);
+        });
     });
 
     describe('account', () => {
         it('updates the profile, password, avatar and favourite genres', async () => {
-            const { token } = state.alice;
+            let { token } = state.alice;
             assert.equal((await api('PATCH', '/api/me', { token, body: { description: 'Iubesc cărțile' } })).body.description, 'Iubesc cărțile');
 
             const wrongPassword = await api('PUT', '/api/me/password', {
                 token, body: { currentPassword: 'nope', newPassword: 'password456' },
             });
-            assert.equal(wrongPassword.status, 401);
-            assert.equal((await api('PUT', '/api/me/password', {
-                token, body: { currentPassword: 'password123', newPassword: 'password456' },
-            })).status, 204);
+            assert.equal(wrongPassword.status, 403); // not 401: the session itself is still valid
 
+            const changed = await api('PUT', '/api/me/password', {
+                token, body: { currentPassword: 'password123', newPassword: 'password456' },
+            });
+            assert.equal(changed.status, 200);
+            // Every older token is revoked; the one returned keeps this device signed in.
+            assert.equal((await api('GET', '/api/me', { token })).status, 401);
+            assert.equal((await api('GET', '/api/me', { token: changed.body.token })).status, 200);
+            state.alice.token = changed.body.token;
+
+            const everywhere = await api('POST', '/api/me/sessions/revoke', { token: state.alice.token });
+            assert.equal((await api('GET', '/api/me', { token: state.alice.token })).status, 401);
+            state.alice.token = everywhere.body.token;
+
+            token = state.alice.token;
             const avatar = await api('PUT', '/api/me/avatar', { token, form: imageForm('image') });
             // Uploaded photos are re-encoded as compressed WebP on the server.
             assert.match(avatar.body.avatarUrl, /^\/uploads\/images\/.+\.webp$/);
@@ -245,13 +273,30 @@ describe('REST API', { skip }, () => {
         });
 
         it('reports recommendations as unavailable without an AI key, within a per-user budget', async () => {
-            assert.deepEqual((await api('GET', '/api/features')).body, { recommendations: false });
+            assert.deepEqual((await api('GET', '/api/features')).body, { recommendations: false, similarBooks: false });
             // 10 requests per 15 minutes per user reach the handler (503 here: no key); the 11th is refused.
             for (let i = 0; i < 9; i += 1) await api('POST', '/api/me/recommendations', { token: state.carol.token });
             assert.equal((await api('POST', '/api/me/recommendations', { token: state.carol.token })).status, 503);
             const limited = await api('POST', '/api/me/recommendations', { token: state.carol.token });
             assert.equal(limited.status, 429);
             assert.equal((await api('POST', '/api/me/recommendations', { token: state.alice.token })).status, 503);
+        });
+
+        it('lists recommendations with their run and handles "not interested"', async () => {
+            const { token } = state.bob;
+            assert.deepEqual((await api('GET', '/api/me/recommendations', { token })).body, { items: [], run: null, dismissedCount: 0 });
+            assert.equal((await api('DELETE', '/api/me/recommendations/999999', { token })).status, 404);
+            assert.equal((await api('DELETE', `/api/me/recommendations/${state.bookId}`, { token })).status, 204);
+            assert.equal((await api('DELETE', `/api/me/recommendations/${state.bookId}`, { token })).status, 204); // idempotent
+            assert.equal((await api('GET', '/api/me/recommendations', { token })).body.dismissedCount, 1);
+            assert.deepEqual((await api('DELETE', '/api/me/recommendation-dismissals', { token })).body, { cleared: 1 });
+        });
+
+        it('serves similar books from stored embeddings only', async () => {
+            const similar = await api('GET', `/api/books/${state.bookId}/similar`);
+            assert.deepEqual([similar.status, similar.body], [200, []]); // no embeddings in the test catalogue
+            assert.equal((await api('GET', '/api/books/999999/similar')).status, 404);
+            assert.equal((await api('GET', `/api/books/${state.bookId}/similar?limit=500`)).status, 400);
         });
     });
 

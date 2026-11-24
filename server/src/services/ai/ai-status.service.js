@@ -79,14 +79,15 @@ export const testAiConnection = async () => {
 /** What the public client may show (cached briefly: it is requested on every page load). */
 export const getPublicFeatures = async () => {
     if (featuresCache.value && featuresCache.expiresAt > Date.now()) return featuresCache.value;
-    let recommendations = false;
-    if (isAiConfigured()) {
-        const settings = await getSettings();
-        recommendations = (await BookEmbedding.count({
-            where: { model: settings['embeddings.model'], dimensions: settings['embeddings.dimensions'] },
-        })) > 0;
-    }
-    featuresCache = { value: { recommendations }, expiresAt: Date.now() + FEATURES_CACHE_MS };
+    const settings = await getSettings();
+    const hasEmbeddings = (await BookEmbedding.count({
+        where: { model: settings['embeddings.model'], dimensions: settings['embeddings.dimensions'] },
+    })) > 0;
+    // Recommendations embed queries (paid provider); similar books only read stored vectors.
+    featuresCache = {
+        value: { recommendations: hasEmbeddings && isAiConfigured(), similarBooks: hasEmbeddings },
+        expiresAt: Date.now() + FEATURES_CACHE_MS,
+    };
     return featuresCache.value;
 };
 

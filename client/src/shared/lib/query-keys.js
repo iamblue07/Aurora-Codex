@@ -22,6 +22,7 @@ export const queryKeys = {
         detail: (id) => ['books', id],
         offers: (id) => ['books', id, 'offers'],
         listings: (id) => ['books', id, 'listings'],
+        similar: (id) => ['books', id, 'similar'],
         rating: (id) => ['books', id, 'rating'],
         externalInfo: (id) => ['books', id, 'external-info'],
     },

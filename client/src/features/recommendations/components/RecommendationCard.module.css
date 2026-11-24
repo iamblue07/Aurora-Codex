@@ -1,0 +1,124 @@
+.card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.book {
+    flex: 1;
+}
+
+.match {
+    position: absolute;
+    top: var(--space-4);
+    left: var(--space-4);
+    max-width: calc(100% - 4.5rem);
+    padding: 0.1rem 0.5rem;
+    overflow: hidden;
+    border-radius: var(--radius-full);
+    background: color-mix(in srgb, var(--color-surface) 90%, transparent);
+    box-shadow: var(--shadow-sm);
+    color: var(--color-text-muted);
+    font-size: 0.68rem;
+    font-weight: var(--weight-black);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    pointer-events: none;
+    backdrop-filter: blur(6px);
+}
+
+.match[data-tier='high'] {
+    color: var(--color-success);
+}
+
+.match[data-tier='mid'] {
+    color: var(--color-primary);
+}
+
+.dismiss {
+    position: absolute;
+    top: var(--space-4);
+    right: var(--space-4);
+    display: grid;
+    place-items: center;
+    width: 2rem;
+    height: 2rem;
+    border: 0;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--color-surface) 90%, transparent);
+    box-shadow: var(--shadow-sm);
+    color: var(--color-text-muted);
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out);
+}
+
+.dismiss svg {
+    width: 1rem;
+    height: 1rem;
+}
+
+.card:hover .dismiss,
+.dismiss:focus-visible {
+    opacity: 1;
+}
+
+.dismiss:hover {
+    color: var(--color-danger);
+}
+
+.reason {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-1);
+    min-height: 1.2rem;
+    margin: 0 var(--space-3);
+    color: var(--color-text-muted);
+    font-size: var(--text-xs);
+    line-height: 1.35;
+}
+
+.reason svg {
+    flex: none;
+    width: 0.8rem;
+    height: 0.8rem;
+    margin-top: 2px;
+    color: var(--color-primary);
+}
+
+.reason a {
+    color: var(--color-text);
+    font-weight: var(--weight-bold);
+}
+
+.reason a:hover {
+    color: var(--color-primary);
+    text-decoration: underline;
+}
+
+/* Touch screens have no hover: keep the button visible. */
+@media (hover: none) {
+    .dismiss {
+        opacity: 1;
+    }
+}
+
+@media (max-width: 480px) {
+    .match {
+        top: var(--space-3);
+        left: var(--space-3);
+        font-size: 0.6rem;
+    }
+
+    .dismiss {
+        top: var(--space-3);
+        right: var(--space-3);
+        width: 1.75rem;
+        height: 1.75rem;
+    }
+
+    .reason {
+        margin: 0 var(--space-2);
+    }
+}

@@ -11,7 +11,7 @@ import { Op } from 'sequelize';
 import { BookEmbedding } from '../../models/index.js';
 import logger from '../../utils/logger.js';
 import { createSearchPool } from './search-pool.js';
-import { fromBuffer, quantize, scanTopK } from './vector-math.js';
+import { dequantizeRow, fromBuffer, quantize, scanTopK } from './vector-math.js';
 
 const LOAD_PAGE_SIZE = 2000;
 
@@ -113,6 +113,25 @@ export const searchSimilar = async (space, queryVector, { limit, exclude = new S
         }
     }
     return scanTopK(current, queryVector, { limit, exclude });
+};
+
+/**
+ * Stored vectors of the given books (approximate: read back from the int8 index), as unit vectors.
+ * Books without an embedding in this space are missing from the result.
+ * @returns {Promise<Map<number, Float32Array>>}
+ */
+export const getVectors = async (space, bookIds) => {
+    const current = await getIndex(space);
+    if (!current.rowById) {
+        current.rowById = new Map();
+        for (let row = 0; row < current.count; row += 1) current.rowById.set(current.ids[row], row);
+    }
+    const vectors = new Map();
+    for (const bookId of bookIds) {
+        const row = current.rowById.get(bookId);
+        if (row !== undefined) vectors.set(bookId, dequantizeRow(current, row));
+    }
+    return vectors;
 };
 
 /** Size and freshness of the loaded index, for the admin panel. */

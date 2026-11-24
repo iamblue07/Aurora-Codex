@@ -66,6 +66,27 @@ export const serializeBookSummary = (book) => ({
     lowestPrice: book.get('lowestPrice') ?? null,
 });
 
+/** A stored recommendation: the book card, its 0–1 score and why it was picked. */
+export const serializeRecommendation = ({ book, score, reason, reasonBook }) => ({
+    book: serializeBookSummary(book),
+    score: score ?? null,
+    reason: reason ?? null,
+    reasonBook: reasonBook ? { id: reasonBook.id, title: reasonBook.title } : null,
+});
+
+/** How the current recommendations were generated. */
+export const serializeRecommendationRun = (run) => (run
+    ? {
+        source: run.source,
+        query: run.query,
+        sentiment: run.sentiment,
+        basedOn: run.basedOn,
+        seedCount: run.seedCount,
+        personalized: Boolean(run.personalized),
+        createdAt: run.createdAt,
+    }
+    : null);
+
 export const serializeBook = (book) => ({
     id: book.id,
     title: book.title,

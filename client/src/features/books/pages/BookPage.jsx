@@ -4,6 +4,7 @@ import { useParams } from 'react-router';
 import { paths } from '@/app/paths';
 import BookDiscussions from '@/features/forums/components/BookDiscussions';
 import { ListingGrid } from '@/features/marketplace/components/ListingCard';
+import SimilarBooks from '@/features/recommendations/components/SimilarBooks';
 import useDocumentTitle from '@/shared/hooks/useDocumentTitle';
 import useGoBack from '@/shared/hooks/useGoBack';
 import { prettyGenreLabel } from '@/shared/hooks/useGenres';
@@ -149,6 +150,8 @@ export default function BookPage() {
                                 : <ListingGrid listings={listings.data ?? []} loading={listings.isPending} skeletonCount={3} />
                         )}
                     </section>
+
+                    <SimilarBooks bookId={data.id} titleClassName={styles.sectionTitle} />
 
                     <BookDiscussions bookId={data.id} titleClassName={styles.sectionTitle} />
                 </div>

@@ -1,5 +1,6 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { setToken } from '@/shared/api/auth-token';
 import { getErrorMessage } from '@/shared/api/error-messages';
 import { queryKeys } from '@/shared/lib/query-keys';
 import { accountApi, usersApi } from './api';
@@ -36,8 +37,21 @@ export const useUploadAvatar = () => {
 
 export const useChangePassword = () => useMutation({
     mutationFn: accountApi.changePassword,
-    onSuccess: () => toast.success('Parola a fost schimbată.'),
-    onError: (error) => toast.error(error.status === 401 ? 'Parola curentă nu este corectă.' : getErrorMessage(error, 'Nu am putut schimba parola.')),
+    onSuccess: ({ token }) => {
+        setToken(token); // the old token was revoked together with every other session
+        toast.success('Parola a fost schimbată. Ai fost deconectat de pe celelalte dispozitive.');
+    },
+    onError: (error) => toast.error(error.status === 403 ? 'Parola curentă nu este corectă.' : getErrorMessage(error, 'Nu am putut schimba parola.')),
+});
+
+/** Signs out every other device; this one keeps working with the returned token. */
+export const useSignOutEverywhere = () => useMutation({
+    mutationFn: accountApi.signOutEverywhere,
+    onSuccess: ({ token }) => {
+        setToken(token);
+        toast.success('Te-am deconectat de pe toate celelalte dispozitive.');
+    },
+    onError: (error) => toast.error(getErrorMessage(error, 'Nu am putut încheia celelalte sesiuni.')),
 });
 
 export const useFavoriteGenres = () => useQuery({

@@ -12,6 +12,7 @@ router.get('/:bookId/cover', controller.getCover);
 router.get('/:bookId/offers', controller.getOffers);
 router.get('/:bookId/listings', controller.getListings);
 router.get('/:bookId/external-info', controller.getExternalInfo);
+router.get('/:bookId/similar', controller.getSimilar);
 
 router.get('/:bookId/rating', authenticate, controller.getRating);
 router.put('/:bookId/rating', authenticate, controller.rate);

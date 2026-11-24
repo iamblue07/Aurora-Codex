@@ -9,6 +9,7 @@ import {
 import * as bookService from '../services/book.service.js';
 import { getExternalInfo } from '../services/google-books.service.js';
 import * as listingService from '../services/listing.service.js';
+import { getSimilarBookIds } from '../services/recommendation.service.js';
 import { wrapController } from '../utils/async-handler.js';
 import { paginated } from '../utils/collections.js';
 import { sendStoredFile } from '../utils/files.js';
@@ -35,6 +36,14 @@ const parseGenres = (value) => {
 };
 
 export default wrapController({
+    /** GET /api/books/:bookId/similar?limit= — closest books in meaning (stored embeddings, no AI call). */
+    async getSimilar(req, res) {
+        const limit = parseInteger(req.query.limit ?? 8, 'limit', { min: 1, max: 24 });
+        const ids = await getSimilarBookIds(bookIdParam(req), limit);
+        const books = await bookService.getBookSummaries(ids);
+        res.set('Cache-Control', 'public, max-age=600').json(books.map(serializeBookSummary));
+    },
+
     /**
      * GET /api/books — catalogue search, or `?ids=1,2,3` to fetch specific books in that order.
      */

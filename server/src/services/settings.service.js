@@ -42,6 +42,16 @@ export const SETTING_DEFINITIONS = Object.freeze([
     /** Books rated at least this high define the reader's taste. */
     { key: 'recommendations.minTasteRating', group: 'recommendations', type: 'integer', default: 4, min: 1, max: 5 },
     { key: 'recommendations.excludeRead', group: 'recommendations', type: 'boolean', default: true },
+    /** Liked books searched around individually (besides their average), so each interest counts. */
+    { key: 'recommendations.maxSeeds', group: 'recommendations', type: 'integer', default: 6, min: 1, max: 12 },
+    /** 0 = pure relevance; higher values trade relevance for variety (MMR). */
+    { key: 'recommendations.diversity', group: 'recommendations', type: 'number', default: 0.25, min: 0, max: 0.9 },
+    /** At most this many recommendations by the same author. */
+    { key: 'recommendations.maxPerAuthor', group: 'recommendations', type: 'integer', default: 2, min: 1, max: 10 },
+    /** How strongly books resembling disliked (rated ≤ 2) or dismissed ones are pushed down. */
+    { key: 'recommendations.dislikeWeight', group: 'recommendations', type: 'number', default: 0.3, min: 0, max: 1 },
+    /** Query recommendations "for me": share of the reader's taste blended into the query. */
+    { key: 'recommendations.personalization', group: 'recommendations', type: 'number', default: 0.25, min: 0, max: 0.8 },
 
     // --- Emotion analysis ---
     { key: 'emotions.model', group: 'emotions', type: 'string', default: 'meta-llama/Meta-Llama-3.1-8B-Instruct', maxLength: 128 },

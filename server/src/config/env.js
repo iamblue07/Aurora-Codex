@@ -102,7 +102,7 @@ const config = Object.freeze({
     auth: Object.freeze({
         secret: required('SECRET_KEY'),
         tokenTtl: optional('JWT_EXPIRES_IN', '1h'),
-        bcryptRounds: 10,
+        bcryptRounds: 12,
     }),
 
     cors: Object.freeze({

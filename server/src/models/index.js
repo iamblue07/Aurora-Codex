@@ -16,6 +16,8 @@ import defineListingFavorite from './ListingFavorite.js';
 import defineListingImage from './ListingImage.js';
 import defineReadBook from './ReadBook.js';
 import defineRecommendation from './Recommendation.js';
+import defineRecommendationDismissal from './RecommendationDismissal.js';
+import defineRecommendationRun from './RecommendationRun.js';
 import defineReport from './Report.js';
 import defineUser from './User.js';
 
@@ -25,6 +27,8 @@ const Book = defineBook(sequelize);
 const BookOffer = defineBookOffer(sequelize);
 const ReadBook = defineReadBook(sequelize);
 const Recommendation = defineRecommendation(sequelize);
+const RecommendationRun = defineRecommendationRun(sequelize);
+const RecommendationDismissal = defineRecommendationDismissal(sequelize);
 const Listing = defineListing(sequelize);
 const ListingImage = defineListingImage(sequelize);
 const ListingFavorite = defineListingFavorite(sequelize);
@@ -62,6 +66,8 @@ User.hasMany(Recommendation, { foreignKey: 'userId', as: 'recommendations' });
 Recommendation.belongsTo(User, { foreignKey: 'userId', as: 'user' });
 Book.hasMany(Recommendation, { foreignKey: 'bookId', as: 'recommendations' });
 Recommendation.belongsTo(Book, { foreignKey: 'bookId', as: 'book' });
+Recommendation.belongsTo(Book, { foreignKey: 'reasonBookId', as: 'reasonBook' });
+RecommendationDismissal.belongsTo(Book, { foreignKey: 'bookId', as: 'book' });
 
 Book.hasOne(BookEmbedding, { foreignKey: 'bookId', as: 'embedding' });
 BookEmbedding.belongsTo(Book, { foreignKey: 'bookId', as: 'book' });
@@ -128,6 +134,8 @@ export {
     ListingImage,
     ReadBook,
     Recommendation,
+    RecommendationDismissal,
+    RecommendationRun,
     Report,
     User,
 };

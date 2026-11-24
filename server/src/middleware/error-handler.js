@@ -45,9 +45,9 @@ export const notFoundHandler = (req, _res, next) => {
 
 /** Central error handler: every error ends up here and is returned as `{ error }` JSON. */
 export const errorHandler = (err, req, res, _next) => {
-    // A file may already be on disk when a later step fails — don't leave it orphaned.
-    if (req.file?.path) {
-        removeStoredFile(path.relative(UPLOADS_ROOT, req.file.path));
+    // Files may already be stored when a later step fails: don't leave them orphaned.
+    for (const file of [req.file, ...(Array.isArray(req.files) ? req.files : [])]) {
+        if (file?.path) removeStoredFile(path.relative(UPLOADS_ROOT, file.path).split(path.sep).join('/'));
     }
 
     const httpError = normalise(err);

@@ -1,16 +1,19 @@
-import { userIdFromAuthorization } from '../services/token.service.js';
+import { isSessionValid } from '../services/session.service.js';
+import { claimsFromAuthorization } from '../services/token.service.js';
 
 /**
- * Like `authenticate`, but never rejects: sets `req.user` when a valid bearer token is present
- * and treats the request as anonymous otherwise. For public endpoints that personalise responses.
+ * Like `authenticate`, but never rejects: sets `req.user` when a valid, unrevoked bearer token is
+ * present and treats the request as anonymous otherwise. For public endpoints that personalise.
  */
-const optionalAuthenticate = (req, _res, next) => {
+const optionalAuthenticate = async (req, _res, next) => {
+    if (!req.headers.authorization) return next();
     try {
-        req.user = { id: userIdFromAuthorization(req.headers.authorization) };
+        const claims = claimsFromAuthorization(req.headers.authorization);
+        if (await isSessionValid(claims)) req.user = { id: claims.id };
     } catch {
-        // No token, or an invalid/expired one: anonymous request.
+        // Invalid or expired token (or a failed lookup): anonymous request.
     }
-    next();
+    return next();
 };
 
 export default optionalAuthenticate;

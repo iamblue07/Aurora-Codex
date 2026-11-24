@@ -7,6 +7,8 @@
  *
  * --forums-only replaces just the forum threads, posts, likes and forum reports of a database that
  * already has the demo users (passwords, listings and chats stay).
+ * --bazaar-only fills in the marketplace details of the existing demo listings (author, condition,
+ * city, delivery, reserved state, views) and replaces their favourites; photos and chats stay.
  *
  * Uses the database and uploads folder from .env (DB_NAME, UPLOADS_DIR). Refuses to run when
  * the database already has users, unless --reset is given: that deletes every user and
@@ -22,7 +24,7 @@ import { SERVER_ROOT, UPLOAD_FOLDERS, UPLOADS_ROOT, ensureDirectories, toStoredP
 import config from '../src/config/env.js';
 import sequelize, { closeDatabase, connectDatabase } from '../src/database/connection.js';
 import {
-    BOOK_REFS, DEMO_ADMIN, DEMO_CHATS, DEMO_FORUMS, DEMO_LISTINGS, DEMO_REPORTS, DEMO_USERS,
+    BOOK_REFS, DEMO_ADMIN, DEMO_CHATS, DEMO_FORUMS, DEMO_LISTINGS, DEMO_REPORTS, DEMO_USERS, SELLER_CITIES,
 } from './seed/demo-content.js';
 import { storeBuffer } from '../src/utils/files.js';
 import { renderListingImage } from './seed/listing-image.js';
@@ -31,6 +33,7 @@ import { refreshForumStats } from '../src/services/forum.service.js';
 const args = process.argv.slice(2);
 const reset = args.includes('--reset');
 const forumsOnly = args.includes('--forums-only');
+const bazaarOnly = args.includes('--bazaar-only');
 const credentialsIndex = args.indexOf('--credentials');
 const credentialsFile = path.resolve(
     SERVER_ROOT,
@@ -75,7 +78,7 @@ const query = (sql, replacements) => sequelize.query(sql, { replacements, type: 
 const insert = (table, rows) => (rows.length ? sequelize.getQueryInterface().bulkInsert(table, rows) : null);
 
 const USER_TABLES = [
-    'reports', 'chat_messages', 'chats', 'listings', 'forum_messages', 'forums',
+    'reports', 'chat_messages', 'chats', 'listing_favorites', 'listing_images', 'listings', 'forum_messages', 'forums',
     'forum_message_likes', 'recommendations', 'read_books', 'favorite_genres', 'background_jobs', 'users',
 ];
 
@@ -195,6 +198,51 @@ const reseedForums = async () => {
     console.log('Forums replaced:', { threads: DEMO_FORUMS.length, posts: forumMessageIds.flat().length, likes, reports: reports.length });
 };
 
+/**
+ * Marketplace details of the demo listings (`seeded`: [{ id, listing, book }]): author, condition,
+ * city, delivery, reserved state and views, plus favourites from other demo readers.
+ */
+const applyListingDetails = async (userId, seeded) => {
+    const readers = DEMO_USERS.map((person) => person.username);
+    let favorites = 0;
+    for (const { id, listing, book } of seeded) {
+        const sold = listing.soldAfterDays !== undefined;
+        const fans = readers.filter((name) => name !== listing.seller && random() < (sold ? 0.12 : 0.2));
+        await sequelize.query('DELETE FROM listing_favorites WHERE listing_id = ?', { replacements: [id] });
+        await insert('listing_favorites', fans.map((name) => ({
+            listing_id: id, user_id: userId[name], created_at: at(randomInt(0, listing.daysAgo) * DAY),
+        })));
+        favorites += fans.length;
+        await sequelize.query(
+            `UPDATE listings SET author = ?, book_condition = ?, city = ?, offers_pickup = 1, offers_shipping = ?,
+                is_reserved = ?, view_count = ?, favorite_count = ? WHERE id = ?`,
+            {
+                replacements: [
+                    book.author ?? null, listing.condition ?? 'good', SELLER_CITIES[listing.seller] ?? null,
+                    listing.shipping ? 1 : 0, listing.reserved && !sold ? 1 : 0,
+                    randomInt(8, 22) * Math.ceil(Math.sqrt(listing.daysAgo)), fans.length, id,
+                ],
+            },
+        );
+    }
+    return favorites;
+};
+
+/** --bazaar-only: details for the demo listings already in the database (matched by seller and title). */
+const updateBazaar = async () => {
+    const userRows = await query('SELECT id, username FROM users');
+    const userId = Object.fromEntries(userRows.map((row) => [row.username, row.id]));
+    const books = await resolveBooks();
+    const seeded = [];
+    for (const listing of DEMO_LISTINGS) {
+        const book = books[listing.book];
+        const [row] = await query('SELECT id FROM listings WHERE seller_id = ? AND title = ?', [userId[listing.seller], listing.title]);
+        if (row && book) seeded.push({ id: row.id, listing, book });
+    }
+    const favorites = await applyListingDetails(userId, seeded);
+    console.log('Bazaar updated:', { listings: seeded.length, favorites });
+};
+
 const main = async () => {
     await connectDatabase();
     ensureDirectories();
@@ -204,6 +252,10 @@ const main = async () => {
     if (bookCount === 0) throw new Error('The catalogue is empty: seed a database that has books.');
     if (forumsOnly) {
         await reseedForums();
+        return;
+    }
+    if (bazaarOnly) {
+        await updateBazaar();
         return;
     }
     if (users > 0 && !reset) throw new Error(`Database "${config.db.name}" already has ${users} users. Use --reset to replace them.`);
@@ -265,9 +317,12 @@ const main = async () => {
             created_at: at(listing.daysAgo * DAY - randomInt(60, 900) * MINUTE),
         }]);
         const [{ id }] = await query('SELECT MAX(id) AS id FROM listings');
+        await insert('listing_images', [{ listing_id: id, path: toStoredPath(UPLOAD_FOLDERS.images, filename), position: 0 }]);
         listingIds.push({ id, listing, book });
         rate(listing.seller, book.id, random() < 0.6 ? 5 : 4); // sellers liked what they sell
     }
+
+    const listingFavorites = await applyListingDetails(userId, listingIds.filter(Boolean));
 
     // --- Forums and their messages --------------------------------------------------------------
     const { forumMessageIds, likes } = await seedForums(userId, books);
@@ -343,6 +398,7 @@ const main = async () => {
         ratings: ratingPairs.size,
         listings: listingIds.filter(Boolean).length,
         sold: listingIds.filter((l) => l && l.listing.soldAfterDays !== undefined).length,
+        listingFavorites,
         forums: DEMO_FORUMS.length,
         forumMessages: forumMessageIds.flat().length,
         forumLikes: likes,

@@ -12,6 +12,8 @@ import defineForumCategory from './ForumCategory.js';
 import defineForumMessage from './ForumMessage.js';
 import defineForumMessageLike from './ForumMessageLike.js';
 import defineListing from './Listing.js';
+import defineListingFavorite from './ListingFavorite.js';
+import defineListingImage from './ListingImage.js';
 import defineReadBook from './ReadBook.js';
 import defineRecommendation from './Recommendation.js';
 import defineReport from './Report.js';
@@ -24,6 +26,8 @@ const BookOffer = defineBookOffer(sequelize);
 const ReadBook = defineReadBook(sequelize);
 const Recommendation = defineRecommendation(sequelize);
 const Listing = defineListing(sequelize);
+const ListingImage = defineListingImage(sequelize);
+const ListingFavorite = defineListingFavorite(sequelize);
 const Chat = defineChat(sequelize);
 const ChatMessage = defineChatMessage(sequelize);
 const Forum = defineForum(sequelize);
@@ -70,6 +74,10 @@ User.hasMany(Listing, { foreignKey: 'sellerId', as: 'listings' });
 Listing.belongsTo(User, { foreignKey: 'sellerId', as: 'seller' });
 Book.hasMany(Listing, { foreignKey: 'bookId', as: 'listings' });
 Listing.belongsTo(Book, { foreignKey: 'bookId', as: 'book' });
+Listing.hasMany(ListingImage, { foreignKey: 'listingId', as: 'images' });
+ListingImage.belongsTo(Listing, { foreignKey: 'listingId', as: 'listing' });
+Listing.hasMany(ListingFavorite, { foreignKey: 'listingId', as: 'favorites' });
+ListingFavorite.belongsTo(Listing, { foreignKey: 'listingId', as: 'listing' });
 
 Listing.hasMany(Chat, { foreignKey: 'listingId', as: 'chats' });
 Chat.belongsTo(Listing, { foreignKey: 'listingId', as: 'listing' });
@@ -116,6 +124,8 @@ export {
     ForumMessage,
     ForumMessageLike,
     Listing,
+    ListingFavorite,
+    ListingImage,
     ReadBook,
     Recommendation,
     Report,

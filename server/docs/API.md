@@ -42,6 +42,7 @@ login + register, 300 for availability checks (safe to call while the user types
 | GET | `/me/recommendations` | book summaries |
 | POST | `/me/recommendations` | `{ query?, sentiment? }` (sentiment ∈ `anger`, `disgust`, `fear`, `joy`, `sadness`, `surprise`, `neutral`, optional). Regenerates recommendations: the books closest in meaning to `query`, or, without it, to the reader's taste (average embedding of the books they rated ≥ 4; favourite genres for new readers). Candidates are re-ranked by the emotion score and preferred genres, already-read books are skipped. Returns the new book summaries. 503 until embeddings exist. |
 | GET | `/me/listings` · `/me/forums` · `/me/chats` | own listings / forums (paginated) / conversations |
+| GET | `/me/favorite-listings` | saved listings, most recently saved first (paginated) |
 
 ### Users
 | Method | Path | Notes |
@@ -65,15 +66,23 @@ login + register, 300 for availability checks (safe to call while the user types
 | GET / PUT / DELETE 🔒 | `/books/:bookId/rating` | `{ isRead, rating }` · PUT `{ rating: 0-5 }` marks as read · DELETE unmarks |
 
 ### Marketplace listings
+A listing has 1–6 photos (the first is the cover), a book `condition` (`new`, `like_new`, `very_good`, `good`, `acceptable`), an optional `author` and `city`, delivery options (`offersPickup`, `offersShipping`, at least one), and a state: available, `isReserved` (still listed) or sold (`isAvailable: false`, final). Summaries carry `viewCount`, `favoriteCount` and, for a signed-in viewer, `isFavorite`.
+
 | Method | Path | Notes |
 |---|---|---|
-| GET | `/listings` | `?search=&genre=&minPrice=&maxPrice=&sort=newest\|oldest\|price_asc\|price_desc` → paginated available listings |
-| POST 🔒 | `/listings` | multipart: `image` (required), `title`, `description`, `price`, `genre`, `isNegotiable?`, `bookId?` → 201 |
-| GET | `/listings/:listingId` | details. `isOwner` is set when a token is sent. |
-| GET | `/listings/:listingId/image` | image file |
-| PATCH 🔒 owner | `/listings/:listingId` | `{ price?, isNegotiable? }` |
-| POST 🔒 owner | `/listings/:listingId/close` | marks as unavailable |
-| DELETE 🔒 owner | `/listings/:listingId` | deletes listing, its chats and files |
+| GET | `/listings` | `?search=` (title or author) `&genre=&condition=a,b&city=&shipping=true&minPrice=&maxPrice=&seller=<userId>&sort=newest\|oldest\|price_asc\|price_desc\|popular&page=&limit=` (max 48) → paginated listings on offer |
+| GET | `/listings/cities` | `[{ city, count }]` cities with listings on offer |
+| POST 🔒 | `/listings` | multipart: `images` (1–6 files), `title`, `author?`, `description`, `price`, `genre`, `condition?`, `city?`, `offersPickup?`, `offersShipping?`, `isNegotiable?`, `bookId?` → 201 listing |
+| GET | `/listings/:listingId` | details: `images [{ id, url }]`, `book`, `sellerStats { memberSince, activeListings, soldListings }`, `storePrice { store, price }` (lowest bookstore price of the linked book), `isOwner`, `isFavorite`. Counts a view (once per visitor every 30 min; not the seller's). |
+| GET | `/listings/:listingId/similar` | up to 4 listings: same book first, then the same genre |
+| GET | `/listings/:listingId/image` | cover image file |
+| PATCH 🔒 owner | `/listings/:listingId` | any of `title, author, description, price, genre, condition, city, offersPickup, offersShipping, isNegotiable, isReserved, bookId` (open listings only) |
+| POST 🔒 owner | `/listings/:listingId/images` | multipart `images`: adds photos (6 in total at most) |
+| DELETE 🔒 owner | `/listings/:listingId/images/:imageId` | removes a photo (the last one stays) |
+| PUT 🔒 owner | `/listings/:listingId/images/:imageId/cover` | makes that photo the cover |
+| POST 🔒 owner | `/listings/:listingId/close` | marks as sold (final) |
+| DELETE 🔒 owner | `/listings/:listingId` | deletes listing, its photos, chats and files |
+| PUT · DELETE 🔒 | `/listings/:listingId/favorite` | save / un-save (not your own) → `{ favoriteCount, isFavorite }` |
 | GET 🔒 | `/listings/:listingId/chat` | `{ chat \| null }`: your conversation about it |
 | POST 🔒 | `/listings/:listingId/chats` | `{ message }`: contact the seller → 201 chat |
 

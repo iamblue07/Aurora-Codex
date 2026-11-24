@@ -82,7 +82,7 @@ export default function ForumCategoryPage() {
                     value={searchDraft}
                     onChange={(event) => setSearchDraft(event.target.value)}
                 />
-                <Select aria-label="Ordonează" value={filters.sort} onChange={(event) => setFilters({ sort: event.target.value })}>
+                <Select aria-label="Ordonează" className={styles.sort} value={filters.sort} onChange={(event) => setFilters({ sort: event.target.value })}>
                     {THREAD_SORTS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
                 </Select>
                 {threads.data && <span className={styles.count}>{formatCount(threads.data.total)} discuții</span>}

@@ -21,7 +21,7 @@ export default wrapController({
 
     async getListings(req, res) {
         const listings = await listingService.getListingsBySeller(parseId(req.params.userId, 'userId'));
-        res.json(listings.map(serializeListingSummary));
+        res.json(listings.map((listing) => serializeListingSummary(listing)));
     },
 
     async getForums(req, res) {

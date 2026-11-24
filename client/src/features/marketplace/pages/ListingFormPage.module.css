@@ -1,0 +1,166 @@
+.layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.4fr) minmax(17rem, 1fr);
+    gap: var(--space-6);
+    align-items: start;
+}
+
+.main {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+    min-width: 0;
+}
+
+.section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+}
+
+.sectionTitle {
+    font-size: var(--text-lg);
+}
+
+.row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-4);
+}
+
+.conditions {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr));
+    gap: var(--space-2);
+}
+
+.condition {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    padding: var(--space-3);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: border-color var(--duration-fast) var(--ease-out), background-color var(--duration-fast) var(--ease-out);
+}
+
+.condition input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.condition span {
+    color: var(--color-text-muted);
+    font-size: var(--text-xs);
+    line-height: 1.4;
+}
+
+.condition:hover {
+    border-color: var(--color-primary-soft-border);
+}
+
+.condition:has(input:focus-visible) {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+}
+
+.conditionActive {
+    border-color: var(--color-primary);
+    background: var(--color-primary-soft);
+}
+
+.conditionActive strong {
+    color: var(--color-primary);
+}
+
+.toggle {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+}
+
+.toggle input {
+    flex: none;
+    width: 1.15rem;
+    height: 1.15rem;
+    margin-top: 0.2rem;
+    accent-color: var(--color-primary);
+}
+
+.toggle > span {
+    display: flex;
+    flex-direction: column;
+}
+
+.toggleHint {
+    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+}
+
+.delivery {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-3);
+}
+
+.error {
+    color: var(--color-danger);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-medium);
+}
+
+.side {
+    position: sticky;
+    top: calc(var(--header-height) + var(--space-4));
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+}
+
+.actions {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+
+@media (max-width: 900px) {
+    .layout {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .side {
+        position: static;
+        display: contents;
+    }
+
+    /* Photos first on phones; the buttons stay at the end of the form. */
+    .side > :first-child {
+        order: -1;
+    }
+
+    .layout > .main {
+        order: 0;
+    }
+
+    .actions {
+        order: 1;
+    }
+}
+
+@media (max-width: 560px) {
+    .row,
+    .delivery {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .conditions {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}

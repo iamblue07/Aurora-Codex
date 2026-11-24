@@ -114,6 +114,9 @@ npm run db:export -- --mysqldump "C:/Program Files/MySQL/MySQL Server 8.0/bin/my
 - `db:seed-demo` is deterministic and refuses to touch a database that has users unless given
   `--reset`, which deletes every user and everything they created. It writes the generated
   passwords to `db/deploy/demo-accounts.local.txt` and the listing photos to `UPLOADS_DIR`.
+  On a database that already has the demo users, `--forums-only` replaces just the forum threads,
+  and `--bazaar-only` fills in the marketplace details (condition, city, delivery, views,
+  favourites) of the existing demo listings; accounts, photos and chats stay.
 - `db:export` writes `db/deploy/<DB_NAME>.sql` (UTF-8, embeddings hex-encoded).
 
 `db/deploy/` is git-ignored. To deploy, import the SQL file, copy `db/deploy/uploads/images`

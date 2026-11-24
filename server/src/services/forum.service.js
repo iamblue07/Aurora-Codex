@@ -11,6 +11,7 @@ import {
     Book, Forum, ForumCategory, ForumMessage, ForumMessageLike, sequelize, User, USER_SUMMARY_ATTRIBUTES,
 } from '../models/index.js';
 import HttpError from '../utils/http-error.js';
+import { createViewCounter } from '../utils/view-counter.js';
 import { toLikePattern } from '../utils/validation.js';
 import { findUserOrThrow, findUserWithPermission } from './user.service.js';
 
@@ -107,19 +108,10 @@ export const listForums = async ({ categoryId, bookId, search, authorId, sort = 
 export const getForum = (forumId) => findForumOrThrow(forumId, { include: threadIncludes });
 
 /** Views are counted at most once per visitor and thread every 30 minutes. */
-const VIEW_WINDOW_MS = 30 * 60 * 1000;
-const MAX_TRACKED_VIEWS = 20_000;
-const recentViews = new Map();
+const shouldCountView = createViewCounter();
 
 export const recordView = async (forumId, viewerKey) => {
-    const key = `${forumId}:${viewerKey}`;
-    const now = Date.now();
-    if ((recentViews.get(key) ?? 0) > now) return false;
-    if (recentViews.size >= MAX_TRACKED_VIEWS) {
-        for (const [entry, expiresAt] of recentViews) if (expiresAt <= now) recentViews.delete(entry);
-        if (recentViews.size >= MAX_TRACKED_VIEWS) recentViews.clear();
-    }
-    recentViews.set(key, now + VIEW_WINDOW_MS);
+    if (!shouldCountView(`${forumId}:${viewerKey}`)) return false;
     await Forum.increment('viewCount', { where: { id: forumId } });
     return true;
 };

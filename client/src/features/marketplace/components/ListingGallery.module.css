@@ -1,0 +1,144 @@
+.gallery {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    min-width: 0;
+}
+
+.stage {
+    position: relative;
+    overflow: hidden;
+    border-radius: var(--radius-xl);
+    background: var(--color-surface-sunken);
+}
+
+.sold .main {
+    filter: grayscale(0.8);
+}
+
+.main {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+}
+
+.main img {
+    object-fit: contain;
+}
+
+.zoomHint {
+    position: absolute;
+    right: var(--space-3);
+    bottom: var(--space-3);
+    display: grid;
+    place-items: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.45);
+    color: #fff;
+    pointer-events: none;
+}
+
+.zoomHint svg {
+    width: 1rem;
+    height: 1rem;
+}
+
+.arrow {
+    position: absolute;
+    top: 50%;
+    display: grid;
+    place-items: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    border: 0;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--color-surface) 85%, transparent);
+    box-shadow: var(--shadow-md);
+    color: var(--color-text);
+    cursor: pointer;
+    transform: translateY(-50%);
+    transition: background-color var(--duration-fast) var(--ease-out);
+}
+
+.arrow:hover {
+    background: var(--color-surface);
+}
+
+.arrow svg {
+    width: 1.25rem;
+    height: 1.25rem;
+}
+
+.left {
+    left: var(--space-3);
+}
+
+.right {
+    right: var(--space-3);
+}
+
+.counter {
+    position: absolute;
+    bottom: var(--space-3);
+    left: var(--space-3);
+    padding: 0.15rem 0.6rem;
+    border-radius: var(--radius-full);
+    background: rgba(0, 0, 0, 0.55);
+    color: #fff;
+    font-size: var(--text-xs);
+    font-weight: var(--weight-bold);
+    font-variant-numeric: tabular-nums;
+}
+
+.thumbs {
+    display: flex;
+    gap: var(--space-2);
+    margin: 0;
+    padding: 0;
+    overflow-x: auto;
+    list-style: none;
+    scrollbar-width: thin;
+}
+
+.thumb {
+    display: block;
+    flex: none;
+    width: 4.5rem;
+    overflow: hidden;
+    padding: 0;
+    border: 2px solid transparent;
+    border-radius: var(--radius-md);
+    background: none;
+    cursor: pointer;
+    opacity: 0.7;
+    transition: opacity var(--duration-fast) var(--ease-out), border-color var(--duration-fast) var(--ease-out);
+}
+
+.thumb > * {
+    aspect-ratio: 1;
+}
+
+.thumb:hover,
+.active {
+    opacity: 1;
+}
+
+.active {
+    border-color: var(--color-primary);
+}
+
+@media (max-width: 560px) {
+    .stage {
+        border-radius: var(--radius-lg);
+    }
+
+    .arrow {
+        width: 2.1rem;
+        height: 2.1rem;
+    }
+
+    .thumb {
+        width: 3.5rem;
+    }
+}

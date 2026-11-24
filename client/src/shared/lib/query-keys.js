@@ -10,6 +10,7 @@ export const queryKeys = {
     readingHistory: ['me', 'reading-history'],
     recommendations: ['me', 'recommendations'],
     myListings: ['me', 'listings'],
+    myFavoriteListings: (params) => ['me', 'favorite-listings', params],
     myForums: (params) => ['me', 'forums', params],
     myChats: ['me', 'chats'],
 
@@ -27,7 +28,9 @@ export const queryKeys = {
     listings: {
         all: ['listings'],
         search: (params) => ['listings', 'search', params],
+        cities: ['listings', 'cities'],
         detail: (id) => ['listings', id],
+        similar: (id) => ['listings', id, 'similar'],
         myChat: (id) => ['listings', id, 'chat'],
     },
     chats: {

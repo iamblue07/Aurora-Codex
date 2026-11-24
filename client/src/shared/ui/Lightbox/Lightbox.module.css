@@ -82,6 +82,22 @@
     height: 1.4rem;
 }
 
+.prev,
+.next {
+    top: 50%;
+    z-index: 1;
+    transform: translateY(-50%);
+}
+
+.prev {
+    right: auto;
+    left: var(--space-4);
+}
+
+.next {
+    right: var(--space-4);
+}
+
 @keyframes fade-in {
     from {
         opacity: 0;

@@ -90,7 +90,8 @@ export default wrapController({
     },
 
     async getListings(req, res) {
-        res.json((await listingService.getListingsForBook(bookIdParam(req))).map(serializeListingSummary));
+        const listings = await listingService.getListingsForBook(bookIdParam(req));
+        res.json(listings.map((listing) => serializeListingSummary(listing)));
     },
 
     /** GET /api/books/:bookId/rating — whether the current user read the book, and their rating. */

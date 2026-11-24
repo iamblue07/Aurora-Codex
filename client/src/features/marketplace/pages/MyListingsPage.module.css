@@ -1,5 +1,7 @@
 .filter {
+    max-width: 100%;
     margin-bottom: var(--space-6);
+    overflow-x: auto;
 }
 
 .list {
@@ -41,8 +43,10 @@
 }
 
 .title {
+    min-width: 0;
     font-weight: var(--weight-black);
     font-size: var(--text-md);
+    overflow-wrap: anywhere;
 }
 
 .title:hover {
@@ -50,8 +54,30 @@
 }
 
 .meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-1) var(--space-3);
     color: var(--color-text-muted);
     font-size: var(--text-sm);
+}
+
+.stats {
+    display: flex;
+    gap: var(--space-4);
+    color: var(--color-text-subtle);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-bold);
+}
+
+.stats span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.stats svg {
+    width: 0.9rem;
+    height: 0.9rem;
 }
 
 .price {
@@ -64,13 +90,21 @@
 }
 
 @media (max-width: 560px) {
-    .item {
-        flex-direction: column;
+    .thumb {
+        width: 6rem;
+        min-height: 6rem;
     }
 
-    .thumb {
-        width: 100%;
-        aspect-ratio: 16 / 9;
-        height: auto;
+    .body {
+        padding: var(--space-3);
+    }
+
+    .header {
+        flex-direction: column-reverse;
+        gap: var(--space-1);
+    }
+
+    .title {
+        font-size: var(--text-base);
     }
 }

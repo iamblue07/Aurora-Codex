@@ -93,23 +93,49 @@ export const serializeReadBook = (entry) => ({
 
 // --- Marketplace ---------------------------------------------------------------------------
 
-export const serializeListingSummary = (listing) => ({
+/** A listing in a list (cards): the cover only. `extras.isFavorite` when the viewer is known. */
+export const serializeListingSummary = (listing, { isFavorite = false } = {}) => ({
     id: listing.id,
     title: listing.title,
+    author: listing.author ?? null,
     description: listing.description,
     price: listing.price,
     genre: genre(listing.genre),
+    condition: listing.condition,
+    city: listing.city ?? null,
+    offersPickup: Boolean(listing.offersPickup),
+    offersShipping: Boolean(listing.offersShipping),
     isNegotiable: listing.isNegotiable,
     isAvailable: listing.isAvailable,
+    isReserved: Boolean(listing.isReserved),
+    viewCount: listing.viewCount ?? 0,
+    favoriteCount: listing.favoriteCount ?? 0,
+    isFavorite,
     imageUrl: publicImageUrl(listing.imagePath),
     seller: authorRef(listing.seller),
     createdAt: listing.createdAt,
+    updatedAt: listing.updatedAt ?? null,
 });
 
-export const serializeListing = (listing, currentUserId) => ({
-    ...serializeListingSummary(listing),
+/**
+ * A listing page: all photos, the linked catalogue book and, in `extras`, the viewer's favourite
+ * flag, the seller's stats and the lowest bookstore price of the same book.
+ */
+export const serializeListing = (listing, currentUserId, extras = {}) => ({
+    ...serializeListingSummary(listing, { isFavorite: extras.isFavorite ?? false }),
     bookId: listing.bookId,
-    isOwner: currentUserId !== undefined && listing.sellerId === currentUserId,
+    book: listing.book
+        ? {
+            id: listing.book.id,
+            title: listing.book.title,
+            author: listing.book.author,
+            coverUrl: coverUrl(listing.book),
+        }
+        : null,
+    images: (listing.images ?? []).map((image) => ({ id: image.id, url: publicImageUrl(image.path) })),
+    isOwner: currentUserId !== undefined && currentUserId !== null && listing.sellerId === currentUserId,
+    sellerStats: extras.sellerStats ?? null,
+    storePrice: extras.storePrice ?? null,
 });
 
 // --- Chats ---------------------------------------------------------------------------------

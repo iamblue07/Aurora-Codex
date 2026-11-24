@@ -34,12 +34,12 @@ const fileFilterFor = (allowedTypes, errorMessage) => (_req, file, cb) => {
     cb(isAllowed ? null : HttpError.badRequest(errorMessage), Boolean(isAllowed));
 };
 
-const createUploader = ({ folder, allowedTypes, maxSizeMb, errorMessage }) => multer({
+const createUploader = ({ folder, allowedTypes, maxSizeMb, maxFiles = 1, errorMessage }) => multer({
     storage: multer.diskStorage({
         destination: path.join(UPLOADS_ROOT, folder),
         filename: uniqueFilename,
     }),
-    limits: { fileSize: maxSizeMb * MB, files: 1 },
+    limits: { fileSize: maxSizeMb * MB, files: maxFiles },
     fileFilter: fileFilterFor(allowedTypes, errorMessage),
 });
 
@@ -94,6 +94,30 @@ const verifyUploadedFile = async (req, _res, next) => {
     }
 };
 
+/**
+ * Same checks as verifyUploadedFile for every photo of a multi-file upload (`req.files`). If one
+ * photo is unreadable, the whole request is rejected and none of its files are kept.
+ */
+const verifyUploadedImages = async (req, _res, next) => {
+    const files = req.files ?? [];
+    try {
+        for (const file of files) {
+            const optimized = await optimizeImageFile(file.path);
+            Object.assign(file, optimized, { mimetype: 'image/webp' });
+        }
+    } catch (error) {
+        logger.warn(`Rejected an unreadable image upload: ${error.message}`);
+        await Promise.all(files.map((file) => fs.rm(file.path, { force: true })));
+        return next(HttpError.badRequest('One of the files is not a valid image'));
+    }
+    try {
+        for (const file of files) await persistUpload(file);
+        return next();
+    } catch (error) {
+        return next(error);
+    }
+};
+
 const imageUploader = createUploader({
     folder: UPLOAD_FOLDERS.images,
     allowedTypes: IMAGE_TYPES,
@@ -108,8 +132,20 @@ const chatMediaUploader = createUploader({
     errorMessage: 'Only JPEG, PNG, WebP and PDF files are allowed',
 });
 
-/** Profile pictures and listing photos (stored in `uploads/images/`, served publicly). */
+/** Profile pictures (stored in `uploads/images/`, served publicly). */
 export const uploadImage = (field) => [imageUploader.single(field), verifyUploadedFile];
+
+/** Up to `maxCount` photos in one request (listing photos), stored like `uploadImage`. */
+export const uploadImages = (field, maxCount) => {
+    const uploader = createUploader({
+        folder: UPLOAD_FOLDERS.images,
+        allowedTypes: IMAGE_TYPES,
+        maxSizeMb: 10,
+        maxFiles: maxCount,
+        errorMessage: 'Only JPEG, PNG and WebP images are allowed',
+    });
+    return [uploader.array(field, maxCount), verifyUploadedImages];
+};
 
 /** Files sent in marketplace chats (stored in `uploads/chat-media/`, private). */
 export const uploadChatMedia = (field) => [chatMediaUploader.single(field), verifyUploadedFile];

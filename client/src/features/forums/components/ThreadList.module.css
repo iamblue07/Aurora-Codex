@@ -225,9 +225,26 @@ a.lastTime:hover {
     }
 
     .row {
-        grid-template-columns: 2.25rem minmax(0, 1fr);
+        grid-template-columns: 1.75rem minmax(0, 1fr);
+        align-items: start;
         gap: var(--space-3);
         padding: var(--space-3) var(--space-4);
+    }
+
+    .status {
+        width: 1.75rem;
+        height: 1.75rem;
+        margin-top: 2px;
+    }
+
+    .status svg {
+        width: 0.9rem;
+        height: 0.9rem;
+    }
+
+    .category,
+    .book {
+        max-width: 100%;
     }
 
     .stats,

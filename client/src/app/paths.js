@@ -10,6 +10,7 @@ export const paths = {
     marketplace: '/bazar',
     listing: (id = ':listingId') => `/bazar/anunt/${id}`,
     createListing: '/bazar/anunt-nou',
+    editListing: (id = ':listingId') => `/bazar/anunt/${id}/editeaza`,
     myListings: '/bazar/anunturile-mele',
     chats: '/bazar/conversatii',
     chat: (id = ':chatId') => `/bazar/conversatii/${id}`,

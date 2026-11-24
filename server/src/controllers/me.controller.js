@@ -85,7 +85,16 @@ export default wrapController({
     },
 
     async getListings(req, res) {
-        res.json((await listingService.getListingsBySeller(req.user.id)).map(serializeListingSummary));
+        const listings = await listingService.getListingsBySeller(req.user.id);
+        res.json(listings.map((listing) => serializeListingSummary(listing)));
+    },
+
+    /** GET /api/me/favorite-listings — saved listings, most recently saved first. */
+    async getFavoriteListings(req, res) {
+        const pagination = parsePagination(req.query.page, req.query.limit, { defaultLimit: 24, maxLimit: 48 });
+        const { listings, total } = await listingService.listFavorites(req.user.id, pagination);
+        const items = listings.map((listing) => serializeListingSummary(listing, { isFavorite: true }));
+        res.json(paginated(items, { ...pagination, total }));
     },
 
     async getForums(req, res) {

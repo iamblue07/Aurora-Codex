@@ -25,6 +25,7 @@ router.get('/recommendations', controller.getRecommendations);
 router.post('/recommendations', aiUserRateLimiters, aiGlobalRateLimiter, controller.generateRecommendations);
 
 router.get('/listings', controller.getListings);
+router.get('/favorite-listings', controller.getFavoriteListings);
 router.get('/forums', controller.getForums);
 router.get('/chats', controller.getChats);
 

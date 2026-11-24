@@ -108,6 +108,13 @@
 
     .tips {
         position: static;
-        order: -1;
+    }
+
+    .categoryRow > :first-child {
+        display: none;
+    }
+
+    .actions > * {
+        flex: 1;
     }
 }

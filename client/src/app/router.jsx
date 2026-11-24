@@ -43,7 +43,8 @@ export const router = createBrowserRouter([
             {
                 element: <RequireAuth />,
                 children: [
-                    { path: paths.createListing, lazy: page(() => import('@/features/marketplace/pages/CreateListingPage')) },
+                    { path: paths.createListing, lazy: page(() => import('@/features/marketplace/pages/ListingFormPage')) },
+                    { path: paths.editListing(), lazy: page(() => import('@/features/marketplace/pages/ListingFormPage')) },
                     { path: paths.myListings, lazy: page(() => import('@/features/marketplace/pages/MyListingsPage')) },
                     { path: paths.chats, lazy: page(() => import('@/features/chats/pages/ChatsPage')) },
                     { path: paths.chat(), lazy: page(() => import('@/features/chats/pages/ChatsPage')) },

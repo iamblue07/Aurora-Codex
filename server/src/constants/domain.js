@@ -29,7 +29,12 @@ export const RATING = Object.freeze({ MIN: 0, MAX: 5 });
 export const MAX_FAVORITE_GENRES = 5;
 
 export const BOOK_SORTS = Object.freeze(['price_asc', 'price_desc', 'title_asc', 'title_desc']);
-export const LISTING_SORTS = Object.freeze(['newest', 'oldest', 'price_asc', 'price_desc']);
+export const LISTING_SORTS = Object.freeze(['newest', 'oldest', 'price_asc', 'price_desc', 'popular']);
+
+/** Physical condition of a second-hand book, best first. */
+export const LISTING_CONDITIONS = Object.freeze(['new', 'like_new', 'very_good', 'good', 'acceptable']);
+
+export const MAX_LISTING_IMAGES = 6;
 
 /** Background jobs administrators can start from the admin panel. */
 export const JOB_TYPES = Object.freeze({

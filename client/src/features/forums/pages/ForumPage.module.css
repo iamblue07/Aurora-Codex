@@ -310,10 +310,36 @@
 
     .headerMain {
         flex-wrap: wrap;
+        gap: var(--space-3);
+    }
+
+    .headerMain > :first-child {
+        display: none;
+    }
+
+    .headerText {
+        flex-basis: 100%;
+    }
+
+    .manage {
+        order: 2;
     }
 
     .title {
         font-size: var(--text-2xl);
+    }
+
+    .stats {
+        gap: var(--space-3) var(--space-4);
+    }
+
+    .book {
+        align-self: stretch;
+    }
+
+    .toolbarActions {
+        width: 100%;
+        justify-content: flex-end;
     }
 
     .stats {

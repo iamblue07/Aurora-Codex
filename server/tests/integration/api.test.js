@@ -259,23 +259,82 @@ describe('REST API', { skip }, () => {
         it('creates listings with validation and ownership rules', async () => {
             const { token } = state.alice;
             const invalid = await api('POST', '/api/listings', {
-                token, form: imageForm('image', { title: 'Dune', description: 'Ca nouă', price: -1, genre: 'fiction' }),
+                token, form: imageForm('images', { title: 'Dune', description: 'Ca nouă, citită o dată.', price: -1, genre: 'fiction' }),
             });
             assert.equal(invalid.status, 400);
+            const noPhoto = await api('POST', '/api/listings', {
+                token, body: { title: 'Dune', description: 'Ca nouă, citită o dată.', price: 10, genre: 'fiction' },
+            });
+            assert.equal(noPhoto.status, 400);
 
             const created = await api('POST', '/api/listings', {
                 token,
-                form: imageForm('image', {
-                    title: 'Dune', description: 'Ca nouă', price: 25.5, genre: 'fiction', isNegotiable: true, bookId: state.bookId,
+                form: imageForm('images', {
+                    title: 'Dune', author: 'Frank Herbert', description: 'Ca nouă, citită o dată.', price: 25.5, genre: 'fiction',
+                    condition: 'like_new', city: 'Cluj-Napoca', offersShipping: true, isNegotiable: true, bookId: state.bookId,
                 }),
             });
             assert.equal(created.status, 201);
             assert.equal(created.body.isOwner, true);
+            assert.equal(created.body.condition, 'like_new');
+            assert.equal(created.body.images.length, 1);
+            assert.equal(created.body.imageUrl, created.body.images[0].url);
             state.listing = created.body;
 
             assert.equal((await api('PATCH', `/api/listings/${state.listing.id}`, { token: state.bob.token, body: { price: 1 } })).status, 403);
-            assert.equal((await api('PATCH', `/api/listings/${state.listing.id}`, { token, body: { price: 20 } })).body.price, 20);
+            const edited = await api('PATCH', `/api/listings/${state.listing.id}`, { token, body: { price: 20, isReserved: true } });
+            assert.deepEqual([edited.body.price, edited.body.isReserved], [20, true]);
+            const noDelivery = await api('PATCH', `/api/listings/${state.listing.id}`, {
+                token, body: { offersPickup: false, offersShipping: false },
+            });
+            assert.equal(noDelivery.status, 400);
             assert.equal((await api('GET', `/api/listings/${state.listing.id}`)).body.isOwner, false);
+        });
+
+        it('filters listings by author, condition, city and shipping', async () => {
+            const search = async (query) => (await api('GET', `/api/listings?${query}`)).body.total;
+            assert.equal(await search('search=Herbert'), 1);
+            assert.equal(await search('condition=like_new,new'), 1);
+            assert.equal(await search('condition=acceptable'), 0);
+            assert.equal(await search('city=Cluj&shipping=true'), 1);
+            assert.equal((await api('GET', '/api/listings?condition=mint')).status, 400);
+            assert.deepEqual((await api('GET', '/api/listings/cities')).body, [{ city: 'Cluj-Napoca', count: 1 }]);
+        });
+
+        it('manages listing photos: add, cover, remove, at least one', async () => {
+            const { token } = state.alice;
+            const url = `/api/listings/${state.listing.id}`;
+            const added = await api('POST', `${url}/images`, { token, form: imageForm('images') });
+            assert.equal(added.body.images.length, 2);
+            const [first, second] = added.body.images;
+
+            const cover = await api('PUT', `${url}/images/${second.id}/cover`, { token });
+            assert.deepEqual(cover.body.images.map((image) => image.id), [second.id, first.id]);
+            assert.equal(cover.body.imageUrl, second.url);
+
+            const removed = await api('DELETE', `${url}/images/${second.id}`, { token });
+            assert.deepEqual(removed.body.images.map((image) => image.id), [first.id]);
+            assert.equal((await api('DELETE', `${url}/images/${first.id}`, { token })).status, 400);
+            assert.equal((await api('POST', `${url}/images`, { token: state.bob.token, form: imageForm('images') })).status, 403);
+            state.listing = removed.body;
+        });
+
+        it('saves favourites for other users only and counts views once', async () => {
+            const url = `/api/listings/${state.listing.id}`;
+            assert.equal((await api('PUT', `${url}/favorite`, { token: state.alice.token })).status, 400);
+            assert.deepEqual((await api('PUT', `${url}/favorite`, { token: state.bob.token })).body, { favoriteCount: 1, isFavorite: true });
+
+            const saved = await api('GET', '/api/me/favorite-listings', { token: state.bob.token });
+            assert.deepEqual([saved.body.total, saved.body.items[0].isFavorite], [1, true]);
+            const listed = await api('GET', '/api/listings', { token: state.bob.token });
+            assert.equal(listed.body.items[0].isFavorite, true);
+
+            const before = (await api('GET', url)).body.viewCount; // this IP was already counted
+            const first = await api('GET', url, { token: state.bob.token });
+            const viewed = await api('GET', url, { token: state.bob.token });
+            assert.equal(first.body.viewCount, before + 1);
+            assert.equal(viewed.body.viewCount, before + 1);
+            assert.equal(viewed.body.sellerStats.activeListings, 1);
         });
 
         it('lets a buyer start exactly one chat, never with themselves', async () => {
@@ -523,6 +582,7 @@ describe('REST API', { skip }, () => {
             assert.equal((await api('GET', `/api/chats/${state.chatId}`, { token: state.bob.token })).status, 404);
             assert.equal(fs.readdirSync(chatMediaDir).length, 0);
             assert.equal((await api('GET', state.listing.imageUrl)).status, 404);
+            assert.equal((await api('GET', '/api/me/favorite-listings', { token: state.bob.token })).body.total, 0);
         });
     });
 });

@@ -1,0 +1,57 @@
+.button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    border: 0;
+    color: var(--color-text-muted);
+    font: inherit;
+    font-weight: var(--weight-bold);
+    cursor: pointer;
+    transition: color var(--duration-fast) var(--ease-out), background-color var(--duration-fast) var(--ease-out),
+        transform var(--duration-fast) var(--ease-out);
+}
+
+.button svg {
+    width: 1.15rem;
+    height: 1.15rem;
+}
+
+.button:active {
+    transform: scale(0.92);
+}
+
+.overlay {
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--color-surface) 88%, transparent);
+    box-shadow: var(--shadow-sm);
+    backdrop-filter: blur(6px);
+}
+
+.overlay:hover {
+    color: var(--color-primary);
+}
+
+.overlay.active,
+.pill.active {
+    color: var(--color-primary);
+}
+
+.active svg {
+    fill: currentColor;
+}
+
+.pill {
+    padding: var(--space-2) var(--space-4);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-full);
+    background: var(--color-surface);
+    font-size: var(--text-sm);
+}
+
+.pill:hover {
+    border-color: var(--color-primary-soft-border);
+    color: var(--color-primary);
+}

@@ -4,6 +4,8 @@
     align-items: center;
     gap: var(--space-1);
     margin: 0;
+    padding: 0;
+    list-style: none;
     color: var(--color-text-subtle);
     font-size: var(--text-sm);
 }
@@ -32,4 +34,15 @@
 .separator svg {
     width: 0.9rem;
     height: 0.9rem;
+}
+
+@media (max-width: 640px) {
+    .item {
+        max-width: 11rem;
+    }
+
+    .current,
+    .lastSeparator {
+        display: none;
+    }
 }

@@ -135,7 +135,7 @@ The board is organised as **categories → threads (`forums`) → posts (`forum_
 | GET | `/admin/settings` | `{ values: { "<key>": value }, definitions: [{ key, group, type, default, min?, max?, maxLength? }] }` |
 | PATCH | `/admin/settings` | `{ "<key>": value \| null }` (null = reset to default); all values validated first → same shape as GET |
 | GET | `/admin/jobs` | `?type=scraper\|embeddings\|emotions&limit=` → `[{ id, type, status, params, total, processed, failed, message, result, startedBy, startedAt, finishedAt }]`, newest first |
-| POST | `/admin/jobs` | `{ type, params }` → 202 job. One job per type at a time (409). Params: scraper `{ fromPage?, toPage? }`; embeddings/emotions `{ scope?: "missing"\|"all", limit? }` |
+| POST | `/admin/jobs` | `{ type, params }` → 202 job. One job per type at a time (409). Params: scraper `{ fromPage?, toPage? }`; embeddings `{ scope?: "missing"\|"all", limit? }`; emotions also `{ concurrency? (1–32), batchSize? (1–25) }` to override the settings for that run |
 | GET | `/admin/jobs/:jobId` | one job, with live progress while running |
 | POST | `/admin/jobs/:jobId/cancel` | → 202; the job stops after its current step (status `cancelled`) |
 

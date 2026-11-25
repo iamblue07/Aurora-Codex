@@ -55,7 +55,10 @@ export const SETTING_DEFINITIONS = Object.freeze([
 
     // --- Emotion analysis ---
     { key: 'emotions.model', group: 'emotions', type: 'string', default: 'meta-llama/Meta-Llama-3.1-8B-Instruct', maxLength: 128 },
-    { key: 'emotions.concurrency', group: 'emotions', type: 'integer', default: 3, min: 1, max: 8 },
+    /** Requests running at the same time. */
+    { key: 'emotions.concurrency', group: 'emotions', type: 'integer', default: 12, min: 1, max: 32 },
+    /** Books rated in one request (the instructions are then sent once for all of them). */
+    { key: 'emotions.batchSize', group: 'emotions', type: 'integer', default: 10, min: 1, max: 25 },
     { key: 'emotions.maxChars', group: 'emotions', type: 'integer', default: 3000, min: 200, max: 8000 },
     /** Books with shorter descriptions carry too little signal to score. */
     { key: 'emotions.minDescriptionLength', group: 'emotions', type: 'integer', default: 100, min: 0, max: 2000 },

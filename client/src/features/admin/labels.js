@@ -102,7 +102,11 @@ export const SETTING_LABELS = {
         label: 'Model pentru analiza emoțională',
         hint: 'Model de limbaj (chat) de pe DeepInfra, care citește descrierile direct în română.',
     },
-    'emotions.concurrency': { label: 'Cereri în paralel' },
+    'emotions.concurrency': { label: 'Cereri în paralel', hint: 'Câte cereri către model rulează în același timp.' },
+    'emotions.batchSize': {
+        label: 'Cărți per cerere',
+        hint: 'Câte descrieri primește modelul într-o singură cerere. Mai multe = analiză mai rapidă și mai ieftină.',
+    },
     'emotions.maxChars': { label: 'Lungimea maximă a descrierii', hint: 'Caractere trimise modelului pentru fiecare carte.' },
     'emotions.minDescriptionLength': {
         label: 'Lungimea minimă a descrierii',

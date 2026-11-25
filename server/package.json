@@ -18,6 +18,7 @@
     "db:rollback": "node src/database/cli.js down",
     "db:status": "node src/database/cli.js status",
     "user": "node scripts/manage-user.js",
+    "job": "node scripts/run-job.js",
     "db:create-catalogue": "node scripts/create-catalogue-db.js",
     "db:seed-demo": "node scripts/seed-demo.js",
     "db:export": "node scripts/export-db.js",

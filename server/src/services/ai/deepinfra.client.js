@@ -38,13 +38,13 @@ export class AiProviderError extends Error {
 /** Removes the API key from any text that could end up in a log, a job record or a response. */
 export const redactSecret = (text) => (config.ai.apiKey ? String(text).split(config.ai.apiKey).join('[redacted]') : String(text));
 
-const post = async (path, body, { signal } = {}) => {
+const post = async (path, body, { signal, timeoutMs = config.ai.timeoutMs } = {}) => {
     if (!isAiConfigured()) {
         throw HttpError.serviceUnavailable('AI features are disabled: DEEPINFRA_API_KEY is not set');
     }
 
     for (let attempt = 1; ; attempt += 1) {
-        const timeout = AbortSignal.timeout(config.ai.timeoutMs);
+        const timeout = AbortSignal.timeout(timeoutMs);
         let response;
         try {
             response = await fetch(`${config.ai.baseUrl}${path}`, {
@@ -97,14 +97,16 @@ export const embed = async (texts, { model, signal } = {}) => {
  * Chat completion that must answer with a JSON object.
  * @returns {Promise<{ value: object, tokens: number }>}
  */
-export const completeJson = async (messages, { model, temperature = 0, maxTokens = 300, signal } = {}) => {
+export const completeJson = async (messages, {
+    model, temperature = 0, maxTokens = 300, signal, timeoutMs,
+} = {}) => {
     const data = await post('/chat/completions', {
         model,
         messages,
         temperature,
         max_tokens: maxTokens,
         response_format: { type: 'json_object' },
-    }, { signal });
+    }, { signal, timeoutMs });
     const content = data.choices?.[0]?.message?.content ?? '';
     // Some models wrap JSON in prose or code fences; take the outermost object.
     const match = content.match(/\{[\s\S]*\}/);

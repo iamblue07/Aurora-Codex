@@ -96,8 +96,9 @@ render.yaml        Render blueprint for the API
    `npm run db:seed-demo -- --bazaar-only` to add them without touching accounts or listings.
 
 6. **AI (optional).** With `DEEPINFRA_API_KEY` set, open `/admin` in the app and run
-   **Vectori semantici** (embeddings) and **Analiză emoțională**. Embedding the whole catalogue
-   costs about $0.55; recommendations appear as soon as embeddings exist.
+   **Vectori semantici** (embeddings) and **Analiză emoțională**, or run them from `server/` with
+   `npm run job -- embeddings` and `npm run job -- emotions`. Embedding the whole catalogue costs about
+   $0.55 and scoring its emotions about $1; recommendations appear as soon as embeddings exist.
 
 ## Tests
 
@@ -116,8 +117,8 @@ render.yaml        Render blueprint for the API
 | Uploads | Cloudflare R2 | A bucket with public access enabled (its URL is `R2_PUBLIC_URL`) and an API token with *Object Read & Write*. Public images go to `aurora-codex/images/`; chat attachments to `aurora-codex/chat-media/`, served only through the API. |
 | Database | Any MySQL 8 host | `DB_SSL=true` is the default on Render; set `DB_SSL_CA_FILE` if the host uses its own CA. |
 
-Render's free plan has no shell, so run `npm run user -- …` and `npm run db:seed-demo -- …` from your
-computer with the production `DB_*` variables set. `npm run storage:upload-local` copies
+Render's free plan has no shell, so run `npm run user -- …`, `npm run db:seed-demo -- …` and long jobs
+(`npm run job -- …`) from your computer with the production `DB_*` variables set. `npm run storage:upload-local` copies
 files stored on a local disk to R2 (after moving an existing database to R2). The bookstore scraper needs headless Chrome, which isn't installed on
 Render; run it locally against the production database when prices need refreshing.
 

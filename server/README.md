@@ -31,6 +31,7 @@ Without `R2_BUCKET`, uploads are stored under `UPLOADS_DIR` (default `uploads/`)
 | `npm run db:seed-demo` | 20 demo readers and an admin with ratings, forums, listings with photos, chats and reports; `--reset` replaces existing users, `--forums-only` / `--bazaar-only` refresh just that content |
 | `npm run db:export` | dump the current database to `db/deploy/<DB_NAME>.sql` |
 | `npm run storage:upload-local` | copy locally stored uploads to R2 (`--dry-run` to preview) |
+| `npm run job -- <emotions\|embeddings\|scraper> [--limit N] [--concurrency N] [--batch-size N]` | run an admin job from the command line against the `.env` database, with progress; Ctrl+C cancels |
 
 `db/deploy/` (dumps, demo photos, generated passwords) is git-ignored.
 
@@ -88,7 +89,9 @@ the one server-side exception).
    rest are re-ranked by the requested emotion and favourite genres, then diversified (MMR, at most
    two per author). Each result stores its reason ("because you liked …", a genre or the query).
 5. **Emotion scores** (`anger_score` … `neutral_score`) come from a language model reading the
-   descriptions (*Analiză emoțională* job).
+   descriptions (*Analiză emoțională* job). Books go to the model in batches (`emotions.batchSize`,
+   default 10) with several requests in flight (`emotions.concurrency`, default 12); a book whose
+   answer is unusable is retried alone.
 
 Every weight is an admin setting (`src/services/settings.service.js`). Similar books
 (`GET /api/books/:id/similar`) only read stored vectors and need no API key.

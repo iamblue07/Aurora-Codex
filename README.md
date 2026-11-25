@@ -117,6 +117,16 @@ render.yaml        Render blueprint for the API
 | Uploads | Cloudflare R2 | A bucket with public access enabled (its URL is `R2_PUBLIC_URL`) and an API token with *Object Read & Write*. Public images go to `aurora-codex/images/`; chat attachments to `aurora-codex/chat-media/`, served only through the API. |
 | Database | Any MySQL 8 host | `DB_SSL=true` is the default on Render; set `DB_SSL_CA_FILE` if the host uses its own CA. |
 
+**Staying awake.** Render stops a free API after 15 minutes without incoming requests, and the
+next visitor waits about a minute for it to start. Three things prevent that:
+
+- the server calls its own `/health` every 5–9 minutes (through `RENDER_EXTERNAL_URL`, set by Render, so no setup is needed);
+- the GitHub Actions workflow `keep-awake.yml` pings it every 10 minutes and wakes it after a restart or deploy. Turn it on by adding the repository variable `KEEP_AWAKE_URL=https://<service>.onrender.com` (Settings → Secrets and variables → Actions → Variables);
+- while the server runs, a `SELECT 1` every 2–4 minutes keeps a free-tier database awake. Connections the database refuses while waking up are retried.
+
+The client on Vercel is static and never sleeps. An always-on free service uses about 744 of the
+workspace's 750 free hours a month, so keep other free Render services in a different workspace.
+
 Render's free plan has no shell, so run `npm run user -- …`, `npm run db:seed-demo -- …` and long jobs
 (`npm run job -- …`) from your computer with the production `DB_*` variables set. `npm run storage:upload-local` copies
 files stored on a local disk to R2 (after moving an existing database to R2). The bookstore scraper needs headless Chrome, which isn't installed on

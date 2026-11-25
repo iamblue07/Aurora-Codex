@@ -1,0 +1,34 @@
+# Wakes the API on Render's free plan if it fell asleep anyway (after a restart, a deploy or a
+# missed self-ping). While it runs, the server keeps itself awake (server/src/services/keep-awake.js);
+# this is the outside backup that can start it again.
+#
+# Setup: GitHub → Settings → Secrets and variables → Actions → Variables → New repository variable
+#   KEEP_AWAKE_URL = https://<your-service>.onrender.com
+# Without the variable the workflow does nothing. GitHub may delay scheduled runs by a few minutes
+# and pauses them after 60 days without commits (re-enable them from the Actions tab).
+name: Keep the API awake
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Ping /health
+        env:
+          URL: ${{ vars.KEEP_AWAKE_URL }}
+        run: |
+          if [ -z "$URL" ]; then
+            echo "KEEP_AWAKE_URL is not set: nothing to ping."
+            exit 0
+          fi
+          # A sleeping instance takes up to a minute to start: wait for it, and retry a few times.
+          curl --fail --silent --show-error --max-time 90 \
+            --retry 3 --retry-delay 10 --retry-all-errors \
+            "${URL%/}/health"

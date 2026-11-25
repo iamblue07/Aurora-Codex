@@ -68,6 +68,17 @@ if (!(keepAliveMin > 0) || keepAliveMax < keepAliveMin) {
     throw new Error('DB_KEEPALIVE_MIN_MINUTES must be > 0 and not above DB_KEEPALIVE_MAX_MINUTES');
 }
 
+/** The server's own public address: KEEP_AWAKE_URL, else the one Render sets on web services. */
+const keepAwakeUrl = (optional('KEEP_AWAKE_URL', null) ?? optional('RENDER_EXTERNAL_URL', null))?.replace(/\/+$/, '') ?? null;
+if (keepAwakeUrl && !/^https?:\/\/[^/]+/.test(keepAwakeUrl)) {
+    throw new Error('KEEP_AWAKE_URL must be an http(s) address, e.g. https://your-api.onrender.com');
+}
+const keepAwakeMin = toNumber('KEEP_AWAKE_MIN_MINUTES', 5);
+const keepAwakeMax = toNumber('KEEP_AWAKE_MAX_MINUTES', 9);
+if (!(keepAwakeMin > 0) || keepAwakeMax < keepAwakeMin || keepAwakeMax >= 15) {
+    throw new Error('KEEP_AWAKE_MIN_MINUTES must be > 0 and not above KEEP_AWAKE_MAX_MINUTES, which must stay under 15');
+}
+
 const config = Object.freeze({
     env: nodeEnv,
     port: toInt('PORT', 3000),
@@ -107,6 +118,14 @@ const config = Object.freeze({
 
     cors: Object.freeze({
         origins: Object.freeze([...corsOrigins]),
+    }),
+
+    /** Self-pings that stop Render's free plan from putting the API to sleep (services/keep-awake.js). */
+    keepAwake: Object.freeze({
+        enabled: toBool('KEEP_AWAKE', true),
+        url: keepAwakeUrl,
+        minMinutes: keepAwakeMin,
+        maxMinutes: keepAwakeMax,
     }),
 
     /**

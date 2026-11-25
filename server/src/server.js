@@ -7,6 +7,7 @@ import { startDatabaseKeepAlive } from './database/keep-alive.js';
 import { runMigrations } from './database/migrator.js';
 import { warmUpSearchIndex } from './services/ai/ai-status.service.js';
 import { cancelAllJobs, markInterruptedJobs } from './services/jobs/index.js';
+import { startKeepAwake } from './services/keep-awake.js';
 import logger from './utils/logger.js';
 
 const SHUTDOWN_TIMEOUT_MS = 10_000;
@@ -30,11 +31,13 @@ const start = async () => {
         warmUpSearchIndex(); // background: requests are served meanwhile
     });
     const stopKeepAlive = startDatabaseKeepAlive();
+    const stopKeepAwake = startKeepAwake();
 
     const shutdown = (signal) => {
         logger.info(`${signal} received, shutting down`);
         cancelAllJobs();
         stopKeepAlive();
+        stopKeepAwake();
         const forceExit = setTimeout(() => process.exit(1), SHUTDOWN_TIMEOUT_MS);
         forceExit.unref();
         server.close(async () => {

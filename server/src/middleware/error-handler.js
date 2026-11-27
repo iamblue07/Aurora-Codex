@@ -1,6 +1,6 @@
 import path from 'node:path';
 import multer from 'multer';
-import { BaseError, ForeignKeyConstraintError, UniqueConstraintError, ValidationError } from 'sequelize';
+import { BaseError, ConnectionError, ForeignKeyConstraintError, UniqueConstraintError, ValidationError } from 'sequelize';
 import { UPLOADS_ROOT } from '../config/paths.js';
 import { AiProviderError } from '../services/ai/deepinfra.client.js';
 import { removeStoredFile } from '../utils/files.js';
@@ -21,6 +21,10 @@ const normalise = (err) => {
     }
     if (err instanceof ValidationError) {
         return HttpError.badRequest('Validation failed', err.errors?.map((e) => e.message));
+    }
+    // The database went away while the server runs (it reconnects by itself when it is back).
+    if (err instanceof ConnectionError) {
+        return HttpError.serviceUnavailable('The database is unavailable, try again shortly');
     }
     if (err instanceof ForeignKeyConstraintError) {
         return HttpError.conflict('Operation violates a data integrity constraint');
@@ -55,7 +59,7 @@ export const errorHandler = (err, req, res, _next) => {
         const label = err instanceof BaseError ? 'Database error' : 'Unhandled error';
         logger.error(`${label} on ${req.method} ${req.originalUrl}:`, err);
     } else if (httpError.status >= 500) {
-        const cause = err instanceof AiProviderError ? ` (${err.message})` : '';
+        const cause = err instanceof AiProviderError || err instanceof ConnectionError ? ` (${err.message})` : '';
         logger.warn(`${req.method} ${req.originalUrl} failed with ${httpError.status}: ${httpError.message}${cause}`);
     }
 

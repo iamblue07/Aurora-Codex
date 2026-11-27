@@ -53,6 +53,41 @@ export const connectDatabase = async () => {
     logger.info(`Connected to MySQL database "${config.db.name}" at ${config.db.host}:${config.db.port}`);
 };
 
+/**
+ * Whether the API may use the database: 'ready' (the default, e.g. in tests and scripts), or
+ * 'connecting' while the server starts or waits for an unreachable database. Requests to /api get
+ * a 503 meanwhile instead of the process crashing (see server.js and app.js).
+ */
+let databaseState = 'ready';
+export const getDatabaseState = () => databaseState;
+export const setDatabaseState = (state) => { databaseState = state; };
+
+/**
+ * Connects, retrying forever with a growing pause (2 s, 4 s, … up to a minute) while the database
+ * is down, so the server recovers by itself when it comes back. `shouldStop` ends the wait early
+ * (shutdown). Resolves with the number of attempts, or null when stopped.
+ */
+export const waitForDatabase = async ({
+    connect = connectDatabase,
+    minDelayMs = 2_000,
+    maxDelayMs = 60_000,
+    shouldStop = () => false,
+    sleep = (ms) => new Promise((resolve) => { setTimeout(resolve, ms).unref?.(); }),
+} = {}) => {
+    for (let attempt = 1, delay = minDelayMs; ; attempt += 1, delay = Math.min(maxDelayMs, delay * 2)) {
+        if (shouldStop()) return null;
+        try {
+            await connect();
+            return attempt;
+        } catch (error) {
+            // Some network errors (e.g. both IPv4 and IPv6 refused) have an empty message: use the code.
+            const reason = error.message || error.parent?.code || error.name;
+            logger.warn(`Database unreachable (attempt ${attempt}): ${reason}. Retrying in ${Math.round(delay / 1000)} s`);
+        }
+        await sleep(delay);
+    }
+};
+
 export const closeDatabase = () => sequelize.close();
 
 export default sequelize;
